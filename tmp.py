@@ -5,7 +5,18 @@ import os
 
 
 
-def buildDynamic(n_states, type='uni') :
+
+def toCumulative(tab) :
+    """input : 1D array where all value add-up to 1 (only positive)    ex : [0.1, 0.2, 0.15, 0.55]
+    output : 1D array where these value progressively add-up           ex : [0.1, 0.3, 0.45, 1.0]"""
+    for i in range(1,len(tab)) :
+        tab[i] += tab[i-1]
+    return tab
+
+
+
+
+def buildMatrix(n_states, type='uni') :
     """builds a stochastic matrix, each coefficient is drawn randomly
         uni --> uniformly in [0, 1[
         mfd --> mean field (all coef. equal to 1/n_states)
@@ -13,13 +24,13 @@ def buildDynamic(n_states, type='uni') :
         pow --> power-tail law (Pareto here)
         nrm --> normal law
         ssr --> ssr process (with state no <-> energy)"""
-    dyn_matrix = np.zeros((n_states,n_states), dtype=float)
+    matrix = np.zeros((n_states,n_states), dtype=float)
     if type=='ssr' :
         for j in range(2,n_states) :
             for i in range(j) : # coefficients are non-zero only if i<j
-                dyn_matrix[i,j] = 1/(j-1)
-        dyn_matrix[-1,0] = 1
-        dyn_matrix[0,1] = 1
+                matrix[i,j] = 1/(j-1)
+        matrix[-1,0] = 1
+        matrix[0,1] = 1
     else :
         for j in range(n_states) :
             s = 0
@@ -32,10 +43,49 @@ def buildDynamic(n_states, type='uni') :
                 else :
                     print('DynamicalRule.initialize ERROR : unknown distribution\n Reminder :\n    uni --> uniformly in [0, 1[\n    bin --> binomial (1 sample)\n    pow --> power-tail law (Pareto here)\n    nrm --> normal law')
                     rate = np.random.uniform()
-                dyn_matrix[i,j] = rate
+                matrix[i,j] = rate
                 if i != j : s += rate
-            dyn_matrix[j,j] = - s # s is the sum of all other transition rates : the matrix is thus stochastic
-    return dyn_matrix
+            matrix[j,j] = - s # s is the sum of all other transition rates : the matrix is thus stochastic
+    return matrix
+
+
+def loadSim(path=None) :
+    """load a full simulation and returns the object"""
+    # getting path
+    if path == None :
+        current = os.getcwd()
+        print('Current directory : ' + current)
+        path = str(input('\nEnter path+filename : '))
+    # loading
+    data = np.load(path + '_data')
+    matrix = np.load(path + '_matrix')
+    meta = np.load(path + '_meta')
+    start_state, n_jumps = int(meta[0]), int(meta[1])
+    n_states = np.shape(matrix)[0]
+    sim = Simulation(n_jumps, n_states)
+    sim.ag.dynamic.setMatrix(matrix)
+    sim.data = data
+    sim.meta = meta
+    print('\Sim loaded from :\n    ' + path.rsplit(sep='/')[-1] + '_data.npy\n'  + path.rsplit(sep='/')[-1] + '_matrix.npy\n    ' + path.rsplit(sep='/')[-1] + '_meta.npy' )
+
+    return sim
+
+def loadInput(path=None) :
+    # getting path
+    if path == None :
+        current = os.getcwd()
+        print('Current directory : ' + current)
+        path = str(input('\nEnter path+filename : '))
+    # loading
+    matrix = np.load(path + '_matrix')
+    meta = np.load(path + '_meta')
+    start_state, n_jumps = int(meta[0]), int(meta[1])
+    n_states = np.shape(matrix)[0]
+    sim = Simulation(n_jumps, n_states)
+    sim.ag.dynamic.setMatrix(matrix)
+    sim.meta = meta
+    print('\Input loaded from :\n    ' + path.rsplit(sep='/')[-1] + '_matrix.npy\n    ' + path.rsplit(sep='/')[-1] + '_meta.npy' )
+    return sim
 
 class DynamicRule:
     """a class that describe the dynamic rule of a simple 10-state system"""
@@ -43,20 +93,20 @@ class DynamicRule:
     def __init__(self, n_states) :
         """input : number of state the dynamic should include (size of the matrix)"""
         self.n_states = n_states
-        self.dyn_matrix = np.zeros((n_states,n_states), dtype=float)
-        self.init_state = 0
+        self.matrix = np.zeros((n_states,n_states), dtype=float)
+        self.start_state = 0
         self.date = 0.
         return
 
 
-    def setDynamic(self, matrix) :
+    def setMatrix(self, matrix) :
         if np.shape(matrix)[0] == self.n_states :
-            self.dyn_matrix = matrix
+            self.matrix = matrix
         else :
             print('DynamicRule.setMatrix ERROR : input matrix of wrong size.\nMatrix left unchanged.')
         return
 
-    def buildDynamic(n_states, type='uni') :
+    def buildMatrix(n_states, type='uni') :
         """builds a stochastic matrix, each coefficient is drawn randomly
             uni --> uniformly in [0, 1[
             mfd --> mean field (all coef. equal to 1/n_states)
@@ -65,12 +115,12 @@ class DynamicRule:
             nrm --> normal law
             ssr --> ssr process (with state no <-> energy)"""
         if type=='ssr' :
-            dyn_matrix = np.zeros((n_states,n_states), dtype=float)
+            matrix = np.zeros((n_states,n_states), dtype=float)
             for j in range(2,n_states) :
                 for i in range(j) : # coefficients are non-zero only if i<j
-                    dyn_matrix[i,j] = 1/(j-1)
-            dyn_matrix[-1,0] = 1
-            dyn_matrix[0,1] = 1
+                    matrix[i,j] = 1/(j-1)
+            matrix[-1,0] = 1
+            matrix[0,1] = 1
         else :
             for j in range(n_states) :
                 s = 0
@@ -83,18 +133,10 @@ class DynamicRule:
                     else :
                         print('DynamicalRule.initialize ERROR : unknown distribution\n Reminder :\n    uni --> uniformly in [0, 1[\n    bin --> binomial (1 sample)\n    pow --> power-tail law (Pareto here)\n    nrm --> normal law')
                         rate = np.random.uniform()
-                    dyn_matrix[i,j] = rate
+                    matrix[i,j] = rate
                     if i != j : s += rate
-                dyn_matrix[j,j] = - s # s is the sum of all other transition rates : the matrix is thus stochastic
-        return dyn_matrix
-
-def toCumulative(tab) :
-    """input : 1D array where all value add-up to 1 (only positive)    ex : [0.1, 0.2, 0.15, 0.55]
-    output : 1D array where these value progressively add-up           ex : [0.1, 0.3, 0.45, 1.0]"""
-    for i in range(1,len(tab)) :
-        tab[i] += tab[i-1]
-    return tab
-
+                matrix[j,j] = - s # s is the sum of all other transition rates : the matrix is thus stochastic
+        return matrix
 
 
 
@@ -110,22 +152,22 @@ class Agent:
     def __init__(self, n_states) :
         """input : number of states modeled by the dynamic"""
         self.dynamic = DynamicRule(n_states)
-        self.state = self.dynamic.init_state
-        self.history = [self.state]
+        self.state = self.dynamic.start_state
+        self.states = [self.state]
         self.transition_dates = [0.0]
         return
 
     def initialize(self) :
         """creates the matrix of the dynamic rule"""
-        mat = buildDynamic(self.dynamic.n_states, 'uni')
-        self.dynamic.setDynamic(mat)
+        mat = buildMatrix(self.dynamic.n_states, 'uni')
+        self.dynamic.setMatrix(mat)
         return
 
     def doStep(self) :
         """samples the next state, then sample the time it will take to jump
         works also when some coefficient are null"""
         # creating a probability distribution from the rates
-        rates = list(self.dynamic.dyn_matrix[:,self.state])
+        rates = list(self.dynamic.matrix[:,self.state])
         rates.pop(self.state) # taking the lists of rate(i,i0) only when i != i0
         probs = rates/np.sum(rates)
         # calculate what will be the next state
@@ -134,7 +176,7 @@ class Agent:
             self.state = ind+1
         else :
             self.state = ind
-        self.history.append(self.state)
+        self.states.append(self.state)
         # calculate the time of the transition to that state
         delta = np.random.exponential(rates[ind])
         self.dynamic.date += delta
@@ -162,7 +204,7 @@ class Simulation:
         meta = [start state, number of jumps that will be simulated]
         data = [[t0=0   , t1     , t2     , ..., t_n    ],
                 [state_0, state_1, state_2, ..., state_n]]
-        ! Simulation.ag.dynamic.dyn_matrix is also part of the metadata !"""
+        ! Simulation.ag.dynamic.matrix is also part of the metadata !"""
         self.ag = Agent(n_states)
         self.ag.initialize()
         self.meta = np.array([0, n_jumps]) # start state and desired length of simulation (in jumps)
@@ -174,7 +216,7 @@ class Simulation:
         n_jumps = self.meta[1]
         for i in range(n_jumps) :
             self.ag.doStep()
-        self.data = np.array([self.ag.transition_dates, self.ag.history])
+        self.data = np.array([self.ag.transition_dates, self.ag.states])
         return
 
     def plotHistogram(self, log=False) :
@@ -204,7 +246,7 @@ class Simulation:
         return
 
 
-    def plotHistory(self) :
+    def plotTrajectory(self) :
         """plots the trajectory of the system over the phase space"""
         # building additionnal points (state just before each jump)
         l = len(self.data[0])
@@ -230,7 +272,7 @@ class Simulation:
         """plots the driving matrix of the simulation as a colormap"""
         # show matrix
         ax = plt.subplot()
-        im = ax.matshow(self.ag.dynamic.dyn_matrix)
+        im = ax.matshow(self.ag.dynamic.matrix)
         # set colorbar (scale) next to matrix
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -243,43 +285,7 @@ class Simulation:
         """runs the simulation live (interactively)"""
         pass
 
-    def loadSim(self, path=None) :
-        """load a full simulation and returns the object"""
-        # getting path
-        if path == None :
-            current = os.getcwd()
-            print('Current directory : ' + current)
-            path = str(input('\nEnter path+filename : '))
-        # loading
-        data = np.load(path + '_data')
-        matrix = np.load(path + '_matrix')
-        meta = np.load(path + '_meta')
-        start_state, n_jumps = int(meta[0]), int(meta[1])
-        n_states = np.shape(matrix)[0]
-        sim = Simulation(n_jumps, n_states)
-        sim.ag.dynamic.setDynamic(matrix)
-        sim.data = data
-        sim.meta = meta
-        print('\Sim loaded from :\n    ' + path.rsplit(sep='/')[-1] + '_data.npy\n'  + path.rsplit(sep='/')[-1] + '_matrix.npy\n    ' + path.rsplit(sep='/')[-1] + '_meta.npy' )
 
-        return sim
-
-    def loadInput(self, path=None) :
-        # getting path
-        if path == None :
-            current = os.getcwd()
-            print('Current directory : ' + current)
-            path = str(input('\nEnter path+filename : '))
-        # loading
-        matrix = np.load(path + '_matrix')
-        meta = np.load(path + '_meta')
-        start_state, n_jumps = int(meta[0]), int(meta[1])
-        n_states = np.shape(matrix)[0]
-        sim = Simulation(n_jumps, n_states)
-        sim.ag.dynamic.setDynamic(matrix)
-        sim.meta = meta
-        print('\Input loaded from :\n    ' + path.rsplit(sep='/')[-1] + '_matrix.npy\n    ' + path.rsplit(sep='/')[-1] + '_meta.npy' )
-        return sim
 
     def saveSim(self, path) :
         """saves the data, the metadata and the matrix to the path"""
@@ -290,7 +296,7 @@ class Simulation:
             path = str(input('\nEnter path+filename : '))
         # saving
         np.save(path + '_data', self.data)
-        np.save(path + '_matrix', self.ag.dynamic.dyn_matrix)
+        np.save(path + '_matrix', self.ag.dynamic.matrix)
         np.save(path + '_meta', self.meta)
         print('\Sim saved as :\n    ' + path.rsplit(sep='/')[-1] + '_data.npy\n    '+ path.rsplit(sep='/')[-1] + '_matrix.npy\n    ' + path.rsplit(sep='/')[-1] + '_meta.npy' )
 
@@ -304,7 +310,7 @@ class Simulation:
             print('Current directory : ' + current)
             path = str(input('\nEnter path+filename : '))
         # saving
-        np.save(path + '_matrix', self.ag.dynamic.dyn_matrix)
+        np.save(path + '_matrix', self.ag.dynamic.matrix)
         np.save(path + '_meta', self.meta)
         print('\Input saved as :\n    ' + path.rsplit(sep='/')[-1] + '_matrix.npy\n    ' + path.rsplit(sep='/')[-1] + '_meta.npy' )
         return
@@ -314,8 +320,8 @@ class Simulation:
 
 # Test 1 : testing DynamicRule
 dyn = DynamicRule(5)
-dyn.setDynamic(buildDynamic(5,'uni'))
-print(dyn.dyn_matrix)
+dyn.setMatrix(buildMatrix(5,'uni'))
+print(dyn.matrix)
 
 
 # Test 2 : testing Agent
@@ -323,48 +329,48 @@ ag = Agent(10)
 ag.initialize()
 for i in range(20) :
     ag.doStep()
-plt.plot(ag.transition_dates, ag.history)
+plt.plot(ag.transition_dates, ag.states)
 
 
-# Test 3 : testing Simulation.run and Simulation.plotHistory
+# Test 3 : testing Simulation.run and Simulation.plotTrajectory
 sim = Simulation(10)
 sim.run()
-sim.plotHistory()
+sim.plotTrajectory()
 
 
-# Test 5 : testing Simulation.plotMatrix
+# Test 4 : testing Simulation.plotMatrix
 sim = Simulation(10)
 sim.plotMatrix()
 
 
-# Test 6 : testing Simulation.plotHistogram
+# Test 5 : testing Simulation.plotHistogram
 sim = Simulation(n_jumps=1000, n_states=100)
 sim.run()
 sim.plotMatrix()
 sim.plotHistogram()
 
 
-# Test 7 : testing re-initialization of a dyamic
+# Test 6 : testing re-initialization of a dyamic
 sim = Simulation(n_jumps=1000, n_states=10)
-mat = buildDynamic(n_states = 10, type='bin')
-sim.ag.dynamic.setDynamic(mat)
+mat = buildMatrix(n_states = 10, type='bin')
+sim.ag.dynamic.setMatrix(mat)
 sim.run()
 sim.plotMatrix()
 sim.plotHistogram()
 
 
-# Test 8 : testing different samplings of driving matrix
+# Test 7 : testing different samplings of driving matrix
 sim = Simulation(n_jumps=1000, n_states=10)
-mat = buildDynamic(n_states = 10, type='pow')
-sim.ag.dynamic.setDynamic(mat)
+mat = buildMatrix(n_states = 10, type='pow')
+sim.ag.dynamic.setMatrix(mat)
 sim.run()
 sim.plotMatrix()
 sim.plotHistogram()
 
 # Test 8 : testing SSR driving matrix and log-scale plotting
 sim = Simulation(n_jumps=10000, n_states=50)
-mat = buildDynamic(n_states = 50, type='ssr')
-sim.ag.dynamic.setDynamic(mat)
+mat = buildMatrix(n_states = 50, type='ssr')
+sim.ag.dynamic.setMatrix(mat)
 sim.run()
 sim.plotMatrix()
 sim.plotHistogram(log=True)
