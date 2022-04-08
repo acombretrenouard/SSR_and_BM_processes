@@ -222,6 +222,7 @@ class Simulation:
     def plotHistogram(self, log=False) :
         """plot the histogram of occupancy in each state
         log=True for log-scale"""
+        plt.figure()
         # goes through the trajectory of the system and adds the trappig time at each step to the right bin
         hist = np.zeros(self.ag.dynamic.n_states)
         current_s = int(self.data[1,0])
@@ -248,6 +249,7 @@ class Simulation:
 
     def plotTrajectory(self) :
         """plots the trajectory of the system over the phase space"""
+        plt.figure()
         # building additionnal points (state just before each jump)
         l = len(self.data[0])
         Xs = np.zeros(2*l)
@@ -270,6 +272,7 @@ class Simulation:
 
     def plotMatrix(self) :
         """plots the driving matrix of the simulation as a colormap"""
+        plt.figure()
         # show matrix
         ax = plt.subplot()
         im = ax.matshow(self.ag.dynamic.matrix)
@@ -316,61 +319,3 @@ class Simulation:
         return
 
 
-
-
-# Test 1 : testing DynamicRule
-dyn = DynamicRule(5)
-dyn.setMatrix(buildMatrix(5,'uni'))
-print(dyn.matrix)
-
-
-# Test 2 : testing Agent
-ag = Agent(10)
-ag.initialize()
-for i in range(20) :
-    ag.doStep()
-plt.plot(ag.transition_dates, ag.states)
-
-
-# Test 3 : testing Simulation.run and Simulation.plotTrajectory
-sim = Simulation(10)
-sim.run()
-sim.plotTrajectory()
-
-
-# Test 4 : testing Simulation.plotMatrix
-sim = Simulation(10)
-sim.plotMatrix()
-
-
-# Test 5 : testing Simulation.plotHistogram
-sim = Simulation(n_jumps=1000, n_states=100)
-sim.run()
-sim.plotMatrix()
-sim.plotHistogram()
-
-
-# Test 6 : testing re-initialization of a dyamic
-sim = Simulation(n_jumps=1000, n_states=10)
-mat = buildMatrix(n_states = 10, type='bin')
-sim.ag.dynamic.setMatrix(mat)
-sim.run()
-sim.plotMatrix()
-sim.plotHistogram()
-
-
-# Test 7 : testing different samplings of driving matrix
-sim = Simulation(n_jumps=1000, n_states=10)
-mat = buildMatrix(n_states = 10, type='pow')
-sim.ag.dynamic.setMatrix(mat)
-sim.run()
-sim.plotMatrix()
-sim.plotHistogram()
-
-# Test 8 : testing SSR driving matrix and log-scale plotting
-sim = Simulation(n_jumps=10000, n_states=50)
-mat = buildMatrix(n_states = 50, type='ssr')
-sim.ag.dynamic.setMatrix(mat)
-sim.run()
-sim.plotMatrix()
-sim.plotHistogram(log=True)
