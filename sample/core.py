@@ -25,15 +25,15 @@ class System:
             self.end_time = (self.T-1)*self.dt
         self.dim = dim
         self.state = np.zeros(self.dim, dtype='float')
-        self.state[0] += 1.
+        self.state += 1.
         self.states = np.zeros((self.dim, self.T))
         self.states[:,0] = self.state # storage
         self.dyn = dyn
         self.noise = noise
         self.noise_inpt = noise_inpt
         self.J_0 = buildMatrix(dim=self.dim, dyn=self.dyn, param=1.)
-        self.xi = np.zeros((self.dim, self.dim))
-        self.xis = np.zeros((self.dim, self.dim, self.T)) # storage
+        self.eta = np.zeros((self.dim, self.dim))
+        self.etas = np.zeros((self.dim, self.dim, self.T)) # storage
         self.analysis = dict()
         self.running = False
         return
@@ -65,8 +65,8 @@ class System:
         self.state[0] += 1.
         self.states = np.zeros((self.dim, self.T))
         self.states[:,0] = self.state # storage
-        self.xi = np.zeros((self.dim, self.dim))
-        self.xis = np.zeros((self.dim, self.dim, self.T)) # storage
+        self.eta = np.zeros((self.dim, self.dim))
+        self.etas = np.zeros((self.dim, self.dim, self.T)) # storage
         self.analysis = dict()
         self.running = False
         return
@@ -78,9 +78,9 @@ class System:
         (same for System.time)"""
         # setting the matrix
         if self.noise != 'no noise' :
-            self.xi = genNoise(dim=self.dim, rule=self.noise, inpt=self.noise_inpt)
-            self.xis[:,:,self.t] = self.xi # storage
-            J = self.J_0 + self.xi
+            self.eta = genNoise(dim=self.dim, rule=self.noise, inpt=self.noise_inpt)
+            self.etas[:,:,self.t] = self.eta # storage
+            J = self.J_0 + self.eta
         else :
             J = self.J_0
         # master equation
