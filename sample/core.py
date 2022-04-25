@@ -52,7 +52,7 @@ class System:
         print("\n Object 'System' n°" + str(id(self)))
         print("-------------------------------------------------------------")
         print(' Simulation parameters\n     samples      : %d\n     length       : %d s\n     timestep     : %f s'%(self.T, int(self.end_time), self.dt))
-        print(' System parameters\n     dynamic type : ' + self.dyn + '\n     noise type   : ' + self.noise)
+        print(' System parameters\n     dynamic type : ' + self.dyn + '\n     noise type   : ' + self.noise + '\n     noise input  : ' + str(self.noise_inpt))
         print(' Current state\n     current step : %d\n     current time : %d s\n     state        : '%(self.t, int(self.time)) + st)
         print("-------------------------------------------------------------\n\n")
         return
@@ -169,7 +169,7 @@ class System:
         # display
         global ani # otherwise the 'ani' variable (existing locally only) is dumped after the 'return'
         ani = animation.FuncAnimation(fig, animate, frames=1000, fargs=(self,), interval=40, blit=True)
-        #test plt.show()
+        plt.show()
         return
 
     def plotMatrix(self) :
@@ -236,6 +236,18 @@ class BMtoolkit:
         self.data['av_w'] = np.average(self.syst.states, axis=0)
         return
 
+    def diff(self, key='') :
+        """differentiate a time series over 1 timestep
+        stores the result as self.data[key+'_diff']"""
+        try:
+            Ys = self.data[key]
+        except:
+            print("ERROR - BMtoolkit.diff() - BMtoolkit.data['av_w'] not assigned !")
+            return
+        L = np.shape(Ys)[0]
+        self.data[key+'_diff'] = Ys[1:]-Ys[:L-1]
+        return
+
     def normAvW(self) :
         """rescales the average-weight time sequence by deviding by its analytic expectancy exp((m+sim**2)t)
         stores the data in self.data['n_av_w']"""
@@ -246,9 +258,8 @@ class BMtoolkit:
         try:
             Ys = self.data['av_w']
         except:
-            print("ERROR - BMtoolkit.normAvW() - BMtoolkit.data['av_w'] not assigned !\nEXECUTED BMtoolkit.avW()")
-            self.avW()
-            Ys = self.data['av_w']
+            print("ERROR - BMtoolkit.normAvW() - BMtoolkit.data['av_w'] not assigned !")
+            return
         # naively claculating growth rate
         delta_t = (T-1)*dt
         growth = self.data['av_w'][-1]/self.data['av_w'][0]
@@ -270,9 +281,8 @@ class BMtoolkit:
         try:
             avs = self.data['av_w']
         except:
-            print("ERROR - BMtoolkit.rescale() - BMtoolkit.data['av_w'] not assigned !\nEXECUTED BMtoolkit.avW()")
-            self.avW()
-            avs = self.data['av_w']
+            print("ERROR - BMtoolkit.rescale() - BMtoolkit.data['av_w'] not assigned !")
+            return
         avs = 1/avs # taking the inverse
         self.data['rsc_states'] = np.multiply(self.syst.states, avs)
         return
@@ -297,6 +307,43 @@ class BMtoolkit:
         plt.xlabel('time (s)')
         plt.ylabel(ylabel)
         return
+
+
+    def plotHist(self, key='', ylabel='', log=False) :
+        """plots the histogram of the specified time sequence"""
+        # getting input
+        #end_time = self.syst.end_time
+        #L = np.shape(Ys)[0]
+        #dt = self.syst.dt
+        try:
+            Ys = self.data[key]
+        except:
+            print("ERROR - BMtoolkit.plotHist() - BMtoolkit.data['" + key + "'] not assigned !")
+            return
+        # handling log-scale
+        if log :
+            m, M = np.amin(Ys), np.amax(Ys)
+            em, eM = np.log10(m), np.log10(M)
+            bins = np.logspace(em,eM, num=100)
+            plt.xscale('log')
+            plt.yscale('log')
+        else :
+            bins = 100
+        # plotting
+        hist = plt.hist(Ys, bins=bins)
+        plt.ylabel(ylabel)
+        return
+
+
+
+
+
+
+
+
+
+
+
 
 
 class SSRtoolkit:
