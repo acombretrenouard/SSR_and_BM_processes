@@ -247,6 +247,7 @@ syst.run()
 
 tlk = BMtoolkit()
 tlk.load(syst)
+
 tlk.avW()
 tlk.normAvW()
 

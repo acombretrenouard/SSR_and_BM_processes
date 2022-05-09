@@ -1,9 +1,25 @@
 """core functions usefull for modelling the system or analysing results..."""
 
+## Imports
+
+# general modules
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable # for plt.colorbar axes
+import matplotlib.colors as colors
+import matplotlib.animation as animation
+import os
+import time
+#import threading
+# own modules
+from . import util
+
+
+
 
 ## Simulation
 
-class System:
+class System(object):
     """defines a dynamical system with a macrostate distribution function and a first-order linear master equation
     Inputs :
         int n_step : number of step that will be simulated
@@ -31,7 +47,7 @@ class System:
         self.dyn = dyn
         self.noise = noise
         self.noise_inpt = noise_inpt
-        self.J_0 = buildMatrix(dim=self.dim, dyn=self.dyn, param=1.)
+        self.J_0 = util.buildMatrix(dim=self.dim, dyn=self.dyn, param=1.)
         self.eta = np.zeros((self.dim, self.dim))
         self.etas = np.zeros((self.dim, self.dim, self.T)) # storage
         self.analysis = dict()
@@ -40,7 +56,7 @@ class System:
 
     def rebuildMatrix(self, p=1.) :
         """allows to input a parameter in the matrix"""
-        self.J_0 = buildMatrix(dim=self.dim, dyn=self.dyn, param=p)
+        self.J_0 = util.buildMatrix(dim=self.dim, dyn=self.dyn, param=p)
         return
 
     def info(self) :
@@ -78,7 +94,7 @@ class System:
         (same for System.time)"""
         # setting the matrix
         if self.noise != 'no noise' :
-            self.eta = genNoise(dim=self.dim, rule=self.noise, inpt=self.noise_inpt)
+            self.eta = util.genNoise(dim=self.dim, rule=self.noise, inpt=self.noise_inpt)
             self.etas[:,:,self.t] = self.eta # storage
             J = self.J_0 + self.eta
         else :
@@ -97,7 +113,7 @@ class System:
         start = time.time()
         # parallel thread
         delay = 1.
-        timer = RepeatTimer(delay, progress, (self,))
+        timer = util.RepeatTimer(delay, util.progress, (self,))
         timer.start()
         # main thread
         self.running = True
@@ -192,7 +208,7 @@ class System:
 
 ## Analysis
 
-class BMtoolkit:
+class BMtoolkit(object):
     """all tool used to analyse a Bouchau-Mézard model
     Class variables :
         ...
@@ -287,7 +303,7 @@ class BMtoolkit:
         self.data['rsc_states'] = np.multiply(self.syst.states, avs)
         return
 
-    def plotData(self, key='', log=False, ylabel='') :
+    def plotData(self, key='', log=False, ylabel='', fig=False) :
         """plots a given time sequence stored in BMtoolkit.data"""
         # getting input
         end_time = self.syst.end_time
@@ -299,7 +315,7 @@ class BMtoolkit:
         L = np.shape(Ys)[0]
         dt = self.syst.dt
         # plotting
-        fig = plt.figure()
+        if fig : fig = plt.figure()
         Ts = np.linspace(0., (L-1)*dt, L)
         if log :
             plt.yscale('log')
@@ -346,7 +362,7 @@ class BMtoolkit:
 
 
 
-class SSRtoolkit:
+class SSRtoolkit(object):
     def __init__(self, dim=5) :
         self.dim = dim
         return
