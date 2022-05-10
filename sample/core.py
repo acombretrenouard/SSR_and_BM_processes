@@ -72,6 +72,9 @@ class System(object):
         print("-------------------------------------------------------------\n\n")
         return
 
+    def getTimes(self) :
+        return np.linspace(0, self.end_time, num=self.T)
+
     def reset(self) :
         """erases all storage variables as well as System.state"""
         self.t = 0

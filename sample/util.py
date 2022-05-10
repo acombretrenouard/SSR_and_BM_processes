@@ -1,9 +1,17 @@
 """utility functions : build, in/out, etc..."""
 
+## imports
+
 import threading
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats.mstats import gmean
+import matplotlib.cm # matplotlib colormaps
+from mpl_toolkits.axes_grid1 import make_axes_locatable # for plt.colorbar axes positionning
+import matplotlib.colors as colors
 
-## Utilities
+
+## BM utilities
 
 
 def buildMatrix(nbr=5, dyn='uni', param=1.) :
@@ -83,4 +91,143 @@ class RepeatTimer(threading.Timer):
 
 
 
+## functions on a single time serie
+
+def rautocorr(Y) :
+    """Y is a 1-dimensionnal time sequence, returns the *rescaled* autocorrelation time-serie (of same length
+! beware : the value for large lag are not trustable !"""
+    list = []
+    T = np.shape(Y)[0]
+    for tau in range(T) :
+        S = 0
+        for t in range(T-tau) :
+            S += Y[t+tau]*Y[t]
+        S /= (T-tau)
+        list.append(S)
+    acr = np.array(list)
+    var = np.var(Y)
+    return  acr/var # implicit
+
+def rautocov(Y) :
+    """Y is a 1-dimensional time sequence, returns the *rescaled* autocovariance time-serie (of same length
+! beware : the value for large lag are not trustable !"""
+    list = []
+    T = np.shape(Y)[0]
+    for tau in range(T) :
+        S = 0
+        for t in range(T-tau) :
+            S += Y[t+tau]*Y[t]
+        S /= (T-tau)
+        list.append(S)
+    acr = np.array(list)
+    m = np.mean(Y)
+    var = np.var(Y)
+    return  (acr-m**2)/var # implicit
+
+def rvariogram(Y) :
+    """Y is a 1-dimensional time sequence, returns the *rescaled* variogram time-serie (of same length
+! beware : the value for large lag are not trustable !"""
+    list = []
+    T = np.shape(Y)[0]
+    for tau in range(T) :
+        S = 0
+        for t in range(T-tau) :
+            S += (Y[t+tau]-Y[t])**2
+        S /= (T-tau)
+        list.append(S)
+    vario = np.array(list)
+    var = np.var(Y)
+    return  vario/var/2 # implicit
+
+def doHist(Y, log=False) :
+    """returns the histogram of the time serie (eventually flattened)"""
+    if log : barg = np.logspace(np.log10(np.amin(copy)), np.log10(np.amax(copy)), num=100)
+    hist, edges = np.histogram(Y, bins=barg, density=True)
+    return hist, edges
+
+## function on a set of time series
+
+def rcov(Ys) :
+    """Ys is a N-dimensional time sequence, returns the *rescaled* covariance matrix
+the time axis is axis 1"""
+    cov = np.cov(Ys)
+    gm = gmean(np.diagonal(cov))
+    return cov/gm
+
+def Y2(Ys) :
+    """return the Y_2-index time serie as defined in BM2000"""
+    Y2 = np.sum(Ys**2, axis=0)
+    return Y2
+
+def rescale(Ys) :
+    """rescale each timestep by the average (agent wise)"""
+    return Ys/np.mean(Ys, axis=0) # implicit np.multiply()
+
+def cumul(Ys) :
+    """returns the cumulative weights for 0 to N (along axis 0)"""
+    return np.cumsum(Ys, axis=0)
+
+
+
+## display functions
+
+def display(T, Y, ylabel='', log=False, name='fig1', show=False, color='b') :
+    """Y is a 1-dimensional time-serie, diplays it"""
+    plt.figure(name)
+    if log :
+        plt.yscale('log')
+    plt.plot(T, Y, color=color)
+    plt.xlabel('time (s)')
+    plt.ylabel(ylabel)
+    if show : plt.show()
+    return
+
+def displayHist(Y, ylabel='', log=False, name='fig1', show=False) :
+    """plots the histogram of the flattenned array Y"""
+    copy = Y.flatten()
+    plt.figure(name)
+    if log :
+        plt.xscale('log')
+        plt.yscale('log')
+        barg = np.logspace(np.log10(np.amin(copy)), np.log10(np.amax(copy)), num=100)
+    else :
+        barg = 100
+    plt.ylabel('density')
+    hist = plt.hist(copy, bins=barg, density=True)
+    del copy
+    if show : plt.show()
+    return
+
+def displayAll(T, Ys, ylabel='', log=False, name='fig1', show=False) :
+    """Ys is a N-dimensional time-serie, diplays all the curves in a bundle
+the time axis is axis 1"""
+    cmap = matplotlib.cm.get_cmap('plasma')
+    N = np.shape(Ys)[0]
+    for i in range(N) :
+        rgb = cmap(i/N)[0:3]
+        rgba = (rgb[0], rgb[1], rgb[2], 0.5)
+        display(T, Ys[i], ylabel=ylabel, log=log, name=name, color=rgba)
+    if show : plt.show()
+    return
+
+def displayMat(mat, name='fig1', show=False, style='cor') :
+    """plots the matrix mat
+style :
+    'cor' for a cmap centered on 0
+    ..."""
+    # show matrix
+    plt.figure(name)
+    ax = plt.subplot()
+    if style == 'cor' :
+        norm = colors.CenteredNorm()
+        im = ax.matshow(mat, cmap='bwr', norm=norm)
+    else :
+        im = ax.matshow(mat)
+    # set colorbar (scale) next to matrix
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    plt.colorbar(im, cax=cax)
+    # show
+    if show : plt.show()
+    return
 
