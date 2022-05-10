@@ -25,11 +25,11 @@ class System(object):
         int n_step : number of step that will be simulated
         float dt : time resolution
         float end_time : duration of the simulation (optionnal, has priority over the specified 'n_step')
-        int dim : number of coordinates for a state
+        int nbr : number of coordinates for a state
         str dyn : type of dynamic used for the master equation
         str noise : type of noise, '' if no noise"""
 
-    def __init__(self, n_step=100, dt=0.1, end_time=-1., dim=5, dyn='ssr', noise='no noise', noise_inpt=(1.,10.)) :
+    def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, dyn='ssr', noise='no noise', noise_inpt=(1.,10.)) :
         self.t = 0
         self.T = n_step
         self.dt = dt
@@ -39,24 +39,24 @@ class System(object):
             self.T = int(end_time/dt)+1
         else :
             self.end_time = (self.T-1)*self.dt
-        self.dim = dim
-        self.state = np.zeros(self.dim, dtype='float')
+        self.nbr = nbr
+        self.state = np.zeros(self.nbr, dtype='float')
         self.state += 1.
-        self.states = np.zeros((self.dim, self.T))
+        self.states = np.zeros((self.nbr, self.T))
         self.states[:,0] = self.state # storage
         self.dyn = dyn
         self.noise = noise
         self.noise_inpt = noise_inpt
-        self.J_0 = util.buildMatrix(dim=self.dim, dyn=self.dyn, param=1.)
-        self.eta = np.zeros((self.dim, self.dim))
-        self.etas = np.zeros((self.dim, self.dim, self.T)) # storage
+        self.J_0 = util.buildMatrix(nbr=self.nbr, dyn=self.dyn, param=1.)
+        self.eta = np.zeros((self.nbr, self.nbr))
+        self.etas = np.zeros((self.nbr, self.nbr, self.T)) # storage
         self.analysis = dict()
         self.running = False
         return
 
     def rebuildMatrix(self, p=1.) :
         """allows to input a parameter in the matrix"""
-        self.J_0 = util.buildMatrix(dim=self.dim, dyn=self.dyn, param=p)
+        self.J_0 = util.buildMatrix(nbr=self.nbr, dyn=self.dyn, param=p)
         return
 
     def info(self) :
@@ -77,12 +77,12 @@ class System(object):
         """erases all storage variables as well as System.state"""
         self.t = 0
         self.time = 0.
-        self.state = np.zeros(self.dim, dtype='float')
+        self.state = np.zeros(self.nbr, dtype='float')
         self.state[0] += 1.
-        self.states = np.zeros((self.dim, self.T))
+        self.states = np.zeros((self.nbr, self.T))
         self.states[:,0] = self.state # storage
-        self.eta = np.zeros((self.dim, self.dim))
-        self.etas = np.zeros((self.dim, self.dim, self.T)) # storage
+        self.eta = np.zeros((self.nbr, self.nbr))
+        self.etas = np.zeros((self.nbr, self.nbr, self.T)) # storage
         self.analysis = dict()
         self.running = False
         return
@@ -94,7 +94,7 @@ class System(object):
         (same for System.time)"""
         # setting the matrix
         if self.noise != 'no noise' :
-            self.eta = util.genNoise(dim=self.dim, rule=self.noise, inpt=self.noise_inpt)
+            self.eta = util.genNoise(nbr=self.nbr, rule=self.noise, inpt=self.noise_inpt)
             self.etas[:,:,self.t] = self.eta # storage
             J = self.J_0 + self.eta
         else :
@@ -128,8 +128,8 @@ class System(object):
 
     def plotState(self, log=False) :
         """plots the current state (from self.state)"""
-        Xs = np.arange(self.dim)
-        wdth = np.zeros(self.dim)+0.5
+        Xs = np.arange(self.nbr)
+        wdth = np.zeros(self.nbr)+0.5
         # setting an eventual log scale
         if log :
             Xs += 1
@@ -142,7 +142,7 @@ class System(object):
         plt.xlabel('state coordinates')
         plt.ylabel('density (not norm.)')
         # placing ticks on axes
-        if self.dim <= 15 and not log :
+        if self.nbr <= 15 and not log :
             plt.xticks(Xs)
         #test plt.show()
         return
@@ -153,30 +153,30 @@ class System(object):
         # figure instanciation
         fig = plt.figure(figsize=(12,8))
         # fancying axes
-        Xs = np.arange(self.dim)
-        if self.dim <= 15 and not log :
+        Xs = np.arange(self.nbr)
+        if self.nbr <= 15 and not log :
             plt.xticks(Xs)
         plt.xlabel('agent')
         plt.ylabel('rescaled wealth')
-        plt.ylim(0,self.dim)
+        plt.ylim(0,self.nbr)
         # setting an eventual log scale
-        wdth = np.zeros(self.dim)+0.5
+        wdth = np.zeros(self.nbr)+0.5
         if log :
             Xs += 1
             plt.xscale('log')
             plt.yscale('log')
-            plt.ylim(10**-(self.dim/10),self.dim) # uncomment this for proper scale definition
+            plt.ylim(10**-(self.nbr/10),self.nbr) # uncomment this for proper scale definition
             wdth = 0.05*Xs
         # plotting th first image
-        mean = np.sum(self.state)/self.dim
+        mean = np.sum(self.state)/self.nbr
         bars = plt.bar(Xs, self.state/mean, width=wdth)
-        txt = plt.text(self.dim/2, self.dim/2, '', backgroundcolor=(1., 1., 1., 0.5))
+        txt = plt.text(self.nbr/2, self.nbr/2, '', backgroundcolor=(1., 1., 1., 0.5))
         # animating function (syst is given by animation.FuncAnimation())
         def animate(t, syst) :
             t = t%syst.T
             state = syst.states[:,t]
-            mean = np.sum(state)/self.dim
-            for i in range(self.dim) :
+            mean = np.sum(state)/self.nbr
+            for i in range(self.nbr) :
                 bars[i].set_height(state[i]/mean)
                 sfx = ' out of ' + "{:.2f}".format(self.end_time) + ' s'
             tm = 't = ' + "{:.2f}".format(self.dt*t) + sfx
@@ -363,8 +363,8 @@ class BMtoolkit(object):
 
 
 class SSRtoolkit(object):
-    def __init__(self, dim=5) :
-        self.dim = dim
+    def __init__(self, nbr=5) :
+        self.nbr = nbr
         return
 
 

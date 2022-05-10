@@ -1,28 +1,17 @@
-"""test the functions progressively
-!! needs to run 'sample/util.py' and 'sample/core.py' to run !!"""
+"""test the functions progressively"""
 
-def main() :
-    test00()
-    test01()
-    test02()
-    test03()
-    test04()
-    test05()
-    test06()
-    test07()
-    test08()
-    test09()
-    test10()
-    test11()
-    return
-
+import os
+os.chdir('/Users/antoine/Documents/X/3A/stages 3A/CSH Vienne/code')
+import sample
+import matplotlib.pyplot as plt
+import numpy as np
 
 ## Tests
 
 def test00() :
     print("test 00 : building a 'System' object")
-    syst = System()
-    print(syst.dim)
+    syst = sample.core.System()
+    print(syst.nbr)
     print(syst.state)
     print(syst.J_0)
     print(syst.noise)
@@ -33,10 +22,10 @@ def test00() :
 
 def test01() :
     print('test 1 : instanciation of class System')
-    syst = System()
+    syst = sample.core.System()
     a = syst.noise_inpt
     print(syst.noise_inpt)
-    mat = genNoise(dim=4, rule='nrm')
+    mat = sample.util.genNoise(nbr=4, rule='nrm')
     print(mat)
     return
 
@@ -46,7 +35,7 @@ def test01() :
 def test02() :
     print('test 2 : System.doStep(), System.reset(), System.run(), syst.plotState()')
     plt.close('all')
-    syst = System()
+    syst = sample.core.System()
     for i in range(5) :
         print('state at t=%i : '%i, syst.state)
         syst.doStep()
@@ -66,7 +55,7 @@ def test02() :
 def test03() :
     print('test 3 : Syste.animateState()')
     plt.close('all')
-    syst = System()
+    syst = sample.core.System()
     syst.run()
     syst.animateState()
     plt.show()
@@ -78,10 +67,10 @@ def test03() :
 def test04() :
     print('test 4 : inputs')
     plt.close('all')
-    syst = System(dim=30, dt=0.01, n_step=1000)
+    syst = sample.core.System(nbr=30, dt=0.01, n_step=1000)
     syst.info()
 
-    syst = System(dim=30, dt=0.25, end_time=100)
+    syst = sample.core.System(nbr=30, dt=0.25, end_time=100)
     syst.info()
     syst.plotMatrix()
     syst.run()
@@ -94,7 +83,7 @@ def test04() :
 
 def test05() :
     print("test 5 : printing runtime (in System.run(), set 'delay' to 0.01)")
-    syst = System(n_step=10000)
+    syst = sample.core.System(n_step=10000)
     syst.run()
     return
 
@@ -105,7 +94,7 @@ def test05() :
 def test06() :
     print('test 6 : noise')
     plt.close('all')
-    syst = System(dim=30, dt=0.01, end_time=100, dyn='mfd', noise='nrm', noise_inpt=(1.,10.))
+    syst = sample.core.System(nbr=30, dt=0.01, end_time=100, dyn='mfd', noise='nrm', noise_inpt=(1.,10.))
     syst.run()
     syst.animateState()
     plt.show()
@@ -117,11 +106,11 @@ def test06() :
 def test07() :
     print('test 7 : BMtoolkit class, summing weights and plotting')
     plt.close('all')
-    syst = System(dim=30, dt=0.025, end_time=99.976, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
+    syst = sample.core.System(nbr=30, dt=0.025, end_time=99.976, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
     syst.info()
     syst.run()
 
-    tlk = BMtoolkit()
+    tlk = sample.core.BMtoolkit()
     tlk.load(syst)
     tlk.avW()
     tlk.plotData(log=True, key='av_w')
@@ -134,11 +123,11 @@ def test07() :
 def test08() :
     print('test 8 : normalized average weight')
     plt.close('all')
-    syst = System(dim=30, dt=0.01, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(1., 10.))
+    syst = sample.core.System(nbr=30, dt=0.01, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(1., 10.))
     syst.run()
     syst.info()
 
-    tlk = BMtoolkit()
+    tlk = sample.core.BMtoolkit()
     tlk.load(syst)
     tlk.avW()
     tlk.plotData(log=True, key='av_w', ylabel='average wealth')
@@ -153,10 +142,10 @@ def test08() :
 
 def test09() :
     print('test 9 : rescale function')
-    syst = System(dim=5, dt=0.01, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
+    syst = sample.core.System(nbr=5, dt=0.01, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
     syst.run()
 
-    tlk = BMtoolkit()
+    tlk = sample.core.BMtoolkit()
     tlk.load(syst)
     tlk.avW()
     print(tlk.data['av_w'][:5])
@@ -175,9 +164,9 @@ def test09() :
 
 def test10() :
     print('test 10 : testing genNoise() parameters')
-    syst = System(dim=5, dt=0.025, end_time=100, dyn='mfd', noise='abc', noise_inpt = (1,2,3))
+    syst = sample.core.System(nbr=5, dt=0.025, end_time=100, dyn='mfd', noise='uni', noise_inpt = (1,2,3))
     for i in range(3) :
-        mat = genNoise(dim=syst.dim, rule=syst.noise, inpt=syst.noise_inpt)
+        mat = sample.util.genNoise(nbr=syst.nbr, rule=syst.noise, inpt=syst.noise_inpt)
         print(mat)
     return
 
@@ -188,7 +177,7 @@ def test10() :
 
 def test11() :
     print('test 11 : time indexation')
-    syst = System(n_step=6, dt=0.3)
+    syst = sample.core.System(n_step=6, dt=0.3)
     syst.run()
 
     tf = syst.time
@@ -211,19 +200,36 @@ def test11() :
 
 
 
+## Main
+
+
+
+
+def main() :
+    test00()
+    test01()
+    test02()
+    test03()
+    test04()
+    test05()
+    test06()
+    test07()
+    test08()
+    test09()
+    test10()
+    test11()
+    return
+
+
 ## Dev
-
-
-
-
 
 """
 # draft for two deltaHist() and plotDeltaHist() functions
 
-syst = System(dim=30, dt=0.001, end_time=100, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
+syst = sample.core.System(nbr=30, dt=0.001, end_time=100, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
 syst.run()
 
-tlk = BMtoolkit()
+tlk = sample.core.BMtoolkit()
 tlk.load(syst)
 tlk.avW()
 tlk.normAvW()
@@ -242,10 +248,10 @@ hist2 = plt.hist(deltas, bins=100)
 
 # draft for a toDrivingMatrix() function
 
-syst = System(dim=30, dt=0.001, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
+syst = sample.core.System(nbr=30, dt=0.001, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
 syst.run()
 
-tlk = BMtoolkit()
+tlk = sample.core.BMtoolkit()
 tlk.load(syst)
 
 tlk.avW()
@@ -281,12 +287,12 @@ def mult(tab, tau) :
 
 
 
-syst = System(dim=30, dt=0.001, n_step=100000, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
+syst = sample.core.System(nbr=30, dt=0.001, n_step=100000, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
 
 for i in range(3) :
     syst.reset()
     syst.run()
-    tlk = BMtoolkit()
+    tlk = sample.core.BMtoolkit()
     tlk.load(syst)
     tlk.avW()
     tlk.normAvW()
@@ -323,12 +329,12 @@ for i in range(3) :
 
 # investigating the increments
 
-syst = System(dim=30, dt=0.001, n_step=100000, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
+syst = sample.core.System(nbr=30, dt=0.001, n_step=100000, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
 
 for i in range(3) :
     syst.reset()
     syst.run()
-    tlk = BMtoolkit()
+    tlk = sample.core.BMtoolkit()
     tlk.load(syst)
     tlk.avW()
     tlk.normAvW()
@@ -367,10 +373,10 @@ for i in range(3) :
 
 # draft for studying max/min
 
-syst = System(dim=300, dt=0.01, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
+syst = sample.core.System(nbr=300, dt=0.01, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
 syst.run()
 
-tlk = BMtoolkit()
+tlk = sample.core.BMtoolkit()
 tlk.load(syst)
 tlk.ratio()
 tlk.plotData(log=False, key='ratio')
@@ -387,14 +393,14 @@ hist1 = plt.hist(ratios, bins=l_bins)
 
 
 # exp 1 : From when do we have a stable histogram for an agent ?
-syst = System(dim=30, dt=0.0001, end_time=20, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
+syst = sample.core.System(nbr=30, dt=0.0001, end_time=20, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
 syst.run()
 
 
 #
 %matplotlib notebook
 
-tlk = BMtoolkit()
+tlk = sample.core.BMtoolkit()
 tlk.load(syst)
 tlk.avW()
 tlk.rescale()
@@ -405,11 +411,11 @@ tlk.plotData(key='ag_6', ylabel='rescaled weight of agent n°6')
 
 
 #
-syst = System(dim=30, dt=0.0001, end_time=20, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
+syst = sample.core.System(nbr=30, dt=0.0001, end_time=20, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
 syst.rebuildMatrix(p=10)
 syst.run()
 
-tlk = BMtoolkit()
+tlk = sample.core.BMtoolkit()
 tlk.load(syst)
 tlk.avW()
 tlk.rescale()
@@ -424,13 +430,13 @@ tlk.plotData(key='ag_6', ylabel='rescaled weight of agent n°6')
 
 
 #
-syst = System(dim=30, dt=0.0001, end_time=20, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
+syst = sample.core.System(nbr=30, dt=0.0001, end_time=20, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
 syst.run()
 # plotting histogram for ||J_0|| ~ 1 Hz
 
 %matplotlib inline
 
-tlk = BMtoolkit()
+tlk = sample.core.BMtoolkit()
 tlk.load(syst)
 tlk.avW()
 tlk.rescale()
@@ -475,7 +481,7 @@ syst.rebuildMatrix(p=10)
 syst.reset()
 syst.run()
 
-tlk = BMtoolkit()
+tlk = sample.core.BMtoolkit()
 tlk.load(syst)
 tlk.avW()
 tlk.rescale()
@@ -518,7 +524,7 @@ plt.show()
 
 # experiment 2 : plotting cov. matrix of states
 
-syst = System(dim=30, dt=0.0001, end_time=20, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
+syst = sample.core.System(nbr=30, dt=0.0001, end_time=20, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
 syst.rebuildMatrix(p=10)
 syst.run()
 
@@ -529,7 +535,7 @@ syst.run()
 
 %matplotlib inline
 
-tlk = BMtoolkit()
+tlk = sample.core.BMtoolkit()
 tlk.load(syst)
 tlk.avW()
 tlk.rescale()
@@ -590,7 +596,7 @@ plotCov(tlk, inf=100000, sup=200000)
 
 # exp 2ter : show that correlations are driven by the matrix
 
-syst = System(dim=30, dt=0.0001, end_time=20, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
+syst = sample.core.System(nbr=30, dt=0.0001, end_time=20, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
 syst.rebuildMatrix(p=10)
 i1=0
 i2=3
@@ -608,7 +614,7 @@ syst.run()
 
 #...and we see the correlation
 
-tlk = BMtoolkit()
+tlk = sample.core.BMtoolkit()
 tlk.load(syst)
 tlk.avW()
 tlk.rescale()
@@ -626,12 +632,12 @@ plotCov(tlk, inf=100000)
 # experiment 3 : noise must surely lower correlations TO CONTINUE
 
 
-syst = System(dim=30, dt=0.01, end_time=20, dyn='mfd', noise='BMs', noise_inpt=(1.,10.))
+syst = sample.core.System(nbr=30, dt=0.01, end_time=20, dyn='mfd', noise='BMs', noise_inpt=(1.,10.))
 syst.rebuildMatrix(p=0.1)
 syst.run()
 syst.info()
 
-tlk = BMtoolkit()
+tlk = sample.core.BMtoolkit()
 tlk.load(syst)
 tlk.avW()
 tlk.plotData(log=True, key='av_w')
@@ -642,11 +648,11 @@ tlk.plotData(log=True, key='av_w')
 
 
 
-syst = System(dim=30, dt=0.01, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(0.1, 10.))
+syst = sample.core.System(nbr=30, dt=0.01, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(0.1, 10.))
 syst.run()
 syst.info()
 
-tlk = BMtoolkit()
+tlk = sample.core.BMtoolkit()
 tlk.load(syst)
 tlk.avW()
 tlk.plotData(log=True, key='av_w')
