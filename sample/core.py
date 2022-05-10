@@ -10,7 +10,6 @@ import matplotlib.colors as colors
 import matplotlib.animation as animation
 import os
 import time
-#import threading
 # own modules
 from . import util
 
