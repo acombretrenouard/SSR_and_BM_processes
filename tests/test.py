@@ -1,10 +1,12 @@
 """test the functions progressively"""
 
-import os
-os.chdir('/Users/antoine/Documents/X/3A/stages 3A/CSH Vienne/code')
-import sample
+
 import matplotlib.pyplot as plt
 import numpy as np
+# adding my module to path
+import sys
+sys.path.append('/Users/antoine/Documents/X/3A/stages 3A/CSH Vienne/code')
+import sample
 
 ## Tests
 
@@ -191,11 +193,6 @@ def test11() :
     print('end_time : ', end_time)
     print('states[0](t) : ', syst.states[0,:])
     return
-
-
-
-
-
 
 
 
