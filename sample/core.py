@@ -22,7 +22,7 @@ import sample.util as util
 
 
 
-## Simulation
+## Body
 
 
 class System(object):
