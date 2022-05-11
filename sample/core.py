@@ -10,15 +10,100 @@ import matplotlib.colors as colors
 import matplotlib.animation as animation
 import os
 import time
+import copy
 # own modules
-from . import util
+# normal
+#from . import util
+# for testing
+import sys
+sys.path.append('/Users/antoine/Documents/X/3A/stages 3A/CSH Vienne/code')
+import sample.util as util
 
 
 
 
 ## Simulation
 
+
 class System(object):
+    """defines the parents class common to all systems (SSR, BM, largeBM...)
+baseline state is 1-dimensional"""
+
+    def __init__(self, n_step=100, end_time=10) :
+        # current step
+        self.step = 0
+        # max step and/or time
+        self.n_step = n_step
+        self.end_time = end_time
+        # state and memory
+        self.time = 0.
+        self.times = []
+        self.times.append(0.)
+        self.state = 0.
+        self.states = []
+        self.states.append(0.)
+        # misc
+        self.running = False
+        return
+
+    def info(self) :
+        """prints info about the instance of class System"""
+        return
+
+    def getTime(self) :
+        return copy.copy(self.time)
+
+    def getTimes(self) :
+        return copy.copy(self.times)
+
+    def getState(self) :
+        return copy.copy(self.state)
+
+    def getStates(self) :
+        return copy.copy(self.states)
+
+    def doStep(self) :
+        """forwards the state by 0.1
+        before System.doStep() : System.t is the index of input variables (state(t), J(t)...)
+        after System.doStep()  : System.t is the index of output variables (state(d+dt))
+        (same for System.time)"""
+        # calc
+        self.state = np.sin(self.time+0.1) # self.state(t+dt) = np.sin(t+dt)
+        # increment
+        self.time += 0.1
+        self.step += 1
+        # memory
+        self.states.append(self.state)
+        self.times.append(self.time)
+        return
+
+    def run(self) :
+        """calculates all states from n°1 to n°T-1 (n°0 is set by default)
+        calls a thread loop that shows progress if long simulation"""
+        start = time.time()
+        # parallel thread
+        delay = 1.
+        timer = util.RepeatTimer(delay, util.progress, (self,))
+        timer.start()
+        # main thread
+        self.running = True
+        while self.step < self.n_step and self.time < self.end_time :
+            self.doStep()
+        self.running = False
+        timer.cancel()
+        delta = time.time() - start
+        print('exit System.run(), runtime = ' + '{:.3f}'.format(delta) + ' s')
+        return
+
+
+
+    def live(self, log=False) :
+        """animates the simulation once done, depending on wich system it is"""
+        return
+
+
+
+class BM(System):
     """defines a dynamical system with a macrostate distribution function and a first-order linear master equation
     Inputs :
         int n_step : number of step that will be simulated
@@ -28,29 +113,28 @@ class System(object):
         str dyn : type of dynamic used for the master equation
         str noise : type of noise, '' if no noise"""
 
-    def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, dyn='ssr', noise='no noise', noise_inpt=(1.,10.)) :
-        self.t = 0
-        self.T = n_step
+    def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, dyn='mfd', noise='BMs', noise_inpt=(1.,10.)) :
+        System.__init__(self, n_step=n_step, end_time=end_time)
+        # simulation parameters
         self.dt = dt
-        self.time = 0.
         if end_time > 0 :
             self.end_time = end_time
-            self.T = int(end_time/dt)+1
+            self.n_step = int(end_time/dt)
         else :
-            self.end_time = (self.T-1)*self.dt
+            self.end_time = (self.n_step)*self.dt
+        # state initialization
         self.nbr = nbr
         self.state = np.zeros(self.nbr, dtype='float')
         self.state += 1.
-        self.states = np.zeros((self.nbr, self.T))
-        self.states[:,0] = self.state # storage
+        self.states = []
+        self.states.append(copy.copy(self.state))
+        # dynamics
         self.dyn = dyn
         self.noise = noise
         self.noise_inpt = noise_inpt
         self.J_0 = util.buildMatrix(nbr=self.nbr, dyn=self.dyn, param=1.)
         self.eta = np.zeros((self.nbr, self.nbr))
-        self.etas = np.zeros((self.nbr, self.nbr, self.T)) # storage
-        self.analysis = dict()
-        self.running = False
+        self.etas = np.zeros((self.nbr, self.nbr, self.n_step)) # storage
         return
 
     def rebuildMatrix(self, p=1.) :
@@ -66,28 +150,24 @@ class System(object):
             st = str(self.state)
         print("\n Object 'System' n°" + str(id(self)))
         print("-------------------------------------------------------------")
-        print(' Simulation parameters\n     samples      : %d\n     length       : %d s\n     timestep     : %f s'%(self.T, int(self.end_time), self.dt))
+        print(' Simulation parameters\n     samples      : %d\n     length       : %f s\n     timestep     : %f s'%(self.n_step, self.end_time, self.dt))
         print(' System parameters\n     dynamic type : ' + self.dyn + '\n     noise type   : ' + self.noise + '\n     noise input  : ' + str(self.noise_inpt))
-        print(' Current state\n     current step : %d\n     current time : %d s\n     state        : '%(self.t, int(self.time)) + st)
+        print(' Current state\n     current step : %d\n     current time : %f s\n     state        : '%(self.step, self.time) + st)
         print("-------------------------------------------------------------\n\n")
         return
 
-    def getTimes(self) :
-        return np.linspace(0, self.end_time, num=self.T)
+    def getTime(self) :
+        return copy.copy(self.time)
 
-    def reset(self) :
-        """erases all storage variables as well as System.state"""
-        self.t = 0
-        self.time = 0.
-        self.state = np.zeros(self.nbr, dtype='float')
-        self.state[0] += 1.
-        self.states = np.zeros((self.nbr, self.T))
-        self.states[:,0] = self.state # storage
-        self.eta = np.zeros((self.nbr, self.nbr))
-        self.etas = np.zeros((self.nbr, self.nbr, self.T)) # storage
-        self.analysis = dict()
-        self.running = False
-        return
+    def getTimes(self) :
+        return copy.copy(self.times)
+
+    def getState(self) :
+        return copy.copy(self.state)
+
+    def getStates(self) :
+        return copy.copy(self.states)
+
 
     def doStep(self) :
         """forwards the state by dt
@@ -97,16 +177,18 @@ class System(object):
         # setting the matrix
         if self.noise != 'no noise' :
             self.eta = util.genNoise(nbr=self.nbr, rule=self.noise, inpt=self.noise_inpt)
-            self.etas[:,:,self.t] = self.eta # storage
+            self.etas[:,:,self.step] = self.eta # storage
             J = self.J_0 + self.eta
         else :
             J = self.J_0
         # master equation
         self.state += self.dt*np.dot(J, self.state) # driving equation : state(t+dt) = state(t) + dt*J(t)*state(t)
-        # data
-        self.states[:,self.t] = self.state # storage
-        self.t += 1
+        # increment
         self.time += self.dt
+        self.step += 1
+        # memory
+        self.states.append(self.getState())
+        self.times.append(self.getTime())
         return
 
     def run(self) :
@@ -119,257 +201,303 @@ class System(object):
         timer.start()
         # main thread
         self.running = True
-        #self.t = 1 # !! self.t représente le temps présent à l'entrée dans System.doStep() !!
-        while self.t < self.T :
+        #self.step = 1 # !! self.step représente le temps présent à l'entrée dans System.doStep() !!
+        while self.step < self.n_step :
             self.doStep()
         self.running = False
         timer.cancel()
         delta = time.time() - start
-        print('System.run() exit, runtime = ' + '{:.3f}'.format(delta) + ' s')
+        print('exit System.run(), runtime = ' + '{:.3f}'.format(delta) + ' s')
         return
 
-    def plotState(self, log=False) :
-        """plots the current state (from self.state)"""
-        Xs = np.arange(self.nbr)
-        wdth = np.zeros(self.nbr)+0.5
-        # setting an eventual log scale
-        if log :
-            Xs += 1
-            plt.xscale('log')
-            plt.yscale('log')
-            wdth = 0.05*Xs
-        # plotting
-        plt.figure()
-        plt.bar(Xs, self.state, width=wdth)
-        plt.xlabel('state coordinates')
-        plt.ylabel('density (not norm.)')
-        # placing ticks on axes
-        if self.nbr <= 15 and not log :
-            plt.xticks(Xs)
-        #test plt.show()
-        return
-
-    def animateState(self, log=False) :
-        """plots all the states stored in self.states in an animation
-        the scale for y-axes is normalized with the mean density of state (not always 1 for non-stochastic matrices)"""
-        # figure instanciation
-        fig = plt.figure(figsize=(12,8))
-        # fancying axes
-        Xs = np.arange(self.nbr)
-        if self.nbr <= 15 and not log :
-            plt.xticks(Xs)
-        plt.xlabel('agent')
-        plt.ylabel('rescaled wealth')
-        plt.ylim(0,self.nbr)
-        # setting an eventual log scale
-        wdth = np.zeros(self.nbr)+0.5
-        if log :
-            Xs += 1
-            plt.xscale('log')
-            plt.yscale('log')
-            plt.ylim(10**-(self.nbr/10),self.nbr) # uncomment this for proper scale definition
-            wdth = 0.05*Xs
-        # plotting th first image
-        mean = np.sum(self.state)/self.nbr
-        bars = plt.bar(Xs, self.state/mean, width=wdth)
-        txt = plt.text(self.nbr/2, self.nbr/2, '', backgroundcolor=(1., 1., 1., 0.5))
-        # animating function (syst is given by animation.FuncAnimation())
-        def animate(t, syst) :
-            t = t%syst.T
-            state = syst.states[:,t]
-            mean = np.sum(state)/self.nbr
-            for i in range(self.nbr) :
-                bars[i].set_height(state[i]/mean)
-                sfx = ' out of ' + "{:.2f}".format(self.end_time) + ' s'
-            tm = 't = ' + "{:.2f}".format(self.dt*t) + sfx
-            txt.set_text(tm)
-            return bars.patches + [txt]
-        # display
-        global ani # otherwise the 'ani' variable (existing locally only) is dumped after the 'return'
-        ani = animation.FuncAnimation(fig, animate, frames=1000, fargs=(self,), interval=40, blit=True)
-        plt.show()
-        return
-
-    def plotMatrix(self) :
-        """plots the driving matrix stored in self.J_0"""
-        # show matrix
-        plt.figure()
-        ax = plt.subplot()
-        im = ax.matshow(self.J_0)
-        # set colorbar (scale) next to matrix
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.05)
-        plt.colorbar(im, cax=cax)
-        # show
-        #test plt.show()
+    def live(self) :
         return
 
 
 
 
 
-## Analysis
-
-class BMtoolkit(object):
-    """all tool used to analyse a Bouchau-Mézard model
-    Class variables :
-        ...
-    Input :
-        ...
-    BMtoolkit.data codenames :
-        'av_w' : time sequence of all averaged weights (average wealth in Bouchaud-Mézard),
-        'n_av_w' = the averaged weights, normalized by the (observed) exponential growth at each time-step,
-        'max_w'  = the maximum weight,
-        'min_w'  = the minimum,
-        'rsc_states' = syst.states rescaled at each timestep by the average weight over agents (must be a stationnary process)
-        ''       = ..."""
-
-    def __init__(self) :
-        self.syst = System()
-        self.data = dict()
-        return
-
-    def load(self, syst) :
-        """loads a 'System' object as the input source"""
-        self.syst = syst
-        return
-
-    def maxW(self) :
-        """calculates the max weight for each time t and store the resulting time-sequence in BMtoolkit.data['maw_W']"""
-        self.data['max_W'] = np.amax(self.syst.states, axis=0)
-        return
-
-    def minW(self) :
-        """calculates the min weight for each time t and store the resulting time-sequence in BMtoolkit.data['min_W']"""
-        self.data['min_W'] = np.amin(self.syst.states, axis=0)
-        return
-
-    def ratio(self) :
-        """calculates the ratio max/min for each timestep, stores data in BMtoolkit.data['ratio']"""
-        self.data['ratio'] = np.amax(self.syst.states, axis=0)/np.amin(self.syst.states, axis=0)
-        return
-
-    def avW(self) :
-        """will average the *weights* along all states for each time t and store the resulting time-sequence in BMtoolkit.data['av_w']"""
-        self.data['av_w'] = np.average(self.syst.states, axis=0)
-        return
-
-    def diff(self, key='') :
-        """differentiate a time series over 1 timestep
-        stores the result as self.data[key+'_diff']"""
-        try:
-            Ys = self.data[key]
-        except:
-            print("ERROR - BMtoolkit.diff() - BMtoolkit.data['av_w'] not assigned !")
-            return
-        L = np.shape(Ys)[0]
-        self.data[key+'_diff'] = Ys[1:]-Ys[:L-1]
-        return
-
-    def normAvW(self) :
-        """rescales the average-weight time sequence by deviding by its analytic expectancy exp((m+sim**2)t)
-        stores the data in self.data['n_av_w']"""
-        # getting input
-        T = self.syst.T
-        dt = self.syst.dt
-        end_time = self.syst.end_time
-        try:
-            Ys = self.data['av_w']
-        except:
-            print("ERROR - BMtoolkit.normAvW() - BMtoolkit.data['av_w'] not assigned !")
-            return
-        # naively claculating growth rate
-        delta_t = (T-1)*dt
-        growth = self.data['av_w'][-1]/self.data['av_w'][0]
-        rate = np.log(growth)/delta_t
-        A0 = self.data['av_w'][0]
-        # normalizing
-        Ts = np.linspace(0., end_time, T)
-        Es = A0*np.exp(rate*Ts)
-        self.data['n_av_w'] = Ys/Es
-        # WRONG LINE !!! self.data['n_Av_W'] = self.data['n_Av_W']/np.average(self.data['n_Av_W'])
-        return
-
-    def rescale(self) :
-        """rescales each agent's weight time sequence by deviding by its the average over agents
-        stores the data in self.data['rsc_states']
-
-        TO CLEAN"""
-        # getting input
-        try:
-            avs = self.data['av_w']
-        except:
-            print("ERROR - BMtoolkit.rescale() - BMtoolkit.data['av_w'] not assigned !")
-            return
-        avs = 1/avs # taking the inverse
-        self.data['rsc_states'] = np.multiply(self.syst.states, avs)
-        return
-
-    def plotData(self, key='', log=False, ylabel='', fig=False) :
-        """plots a given time sequence stored in BMtoolkit.data"""
-        # getting input
-        end_time = self.syst.end_time
-        try:
-            Ys = self.data[key]
-        except:
-            print("ERROR - BMtoolkit.plotData() - BMtoolkit.data['" + key + "'] not assigned !")
-            return
-        L = np.shape(Ys)[0]
-        dt = self.syst.dt
-        # plotting
-        if fig : fig = plt.figure()
-        Ts = np.linspace(0., (L-1)*dt, L)
-        if log :
-            plt.yscale('log')
-        plt.plot(Ts, Ys)
-        plt.xlabel('time (s)')
-        plt.ylabel(ylabel)
-        return
 
 
-    def plotHist(self, key='', ylabel='', log=False) :
-        """plots the histogram of the specified time sequence"""
-        # getting input
-        #end_time = self.syst.end_time
-        #L = np.shape(Ys)[0]
-        #dt = self.syst.dt
-        try:
-            Ys = self.data[key]
-        except:
-            print("ERROR - BMtoolkit.plotHist() - BMtoolkit.data['" + key + "'] not assigned !")
-            return
-        # handling log-scale
-        if log :
-            m, M = np.amin(Ys), np.amax(Ys)
-            em, eM = np.log10(m), np.log10(M)
-            bins = np.logspace(em,eM, num=100)
-            plt.xscale('log')
-            plt.yscale('log')
+class largeBM(System) :
+    """defines the uncorrelated version of the BM mode (see eq. 5 in BM2000)"""
+    def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, noise='lBM', noise_inpt=(1.,10.)) :
+        System.__init__(self, n_step=n_step, end_time=end_time)
+        # simulation parameters
+        self.dt = dt
+        if end_time > 0 :
+            self.end_time = end_time
+            self.n_step = int(end_time/dt)
         else :
-            bins = 100
-        # plotting
-        hist = plt.hist(Ys, bins=bins)
-        plt.ylabel(ylabel)
-        return
-
-
-
-
-
-
-
-
-
-
-
-
-
-class SSRtoolkit(object):
-    def __init__(self, nbr=5) :
+            self.end_time = (self.n_step)*self.dt
+        # state initialization
         self.nbr = nbr
+        self.state = np.zeros(self.nbr, dtype='float')
+        self.state += 1.
+        self.states = []
+        self.states.append(copy.copy(self.state))
+        # dynamics
+        self.J = 1.
+        self.noise = noise
+        self.noise_inpt = noise_inpt
+        self.eta = np.zeros(self.nbr)
+        self.etas = np.zeros((self.nbr, self.n_step)) # storage
+        return
+
+
+    def info(self) :
+        """prints info about the instance of class System"""
+        if len(str(self.state)) > 36 :
+            st = str(self.state)[:36]+'...'
+        else :
+            st = str(self.state)
+        print("\n Object 'System' n°" + str(id(self)))
+        print("-------------------------------------------------------------")
+        print(' Simulation parameters\n     samples      : %d\n     length       : %f s\n     timestep     : %f s'%(self.n_step, self.end_time, self.dt))
+        print(' System parameters\n     noise type   : ' + self.noise + '\n     noise input  : ' + str(self.noise_inpt))
+        print(' Current state\n     current step : %d\n     current time : %f s\n     state        : '%(self.step, self.time) + st)
+        print("-------------------------------------------------------------\n\n")
+        return
+
+    def getTime(self) :
+        return copy.copy(self.time)
+
+    def getTimes(self) :
+        return copy.copy(self.times)
+
+    def getState(self) :
+        return copy.copy(self.state)
+
+    def getStates(self) :
+        return copy.copy(self.states)
+
+
+    def doStep(self) :
+        """forwards the state by dt
+        before System.doStep() : System.t is the index of input variables (state(t), J(t)...)
+        after System.doStep()  : System.t is the index of output variables (state(d+dt))
+        (same for System.time)"""
+        # setting the noise vector
+        self.eta = util.genNoise(nbr=self.nbr, rule=self.noise, inpt=self.noise_inpt, retmat=False)
+        self.etas[:,self.step] = self.eta # storage
+        # master equation
+        self.state += self.dt*(np.multiply(self.state, self.eta) + self.J*(1-self.state)) # driving equation : state[i](t+dt) = state[i](t) + dt*(state[i](t)*noise + J(1-state[i](t))) with noise = eta[i](t) - m -sigm**2
+        # increment
+        self.time += self.dt
+        self.step += 1
+        # memory
+        self.states.append(self.getState())
+        self.times.append(self.getTime())
+        return
+
+    def run(self) :
+        """calculates all states from n°1 to n°T-1 (n°0 is set by default)
+        calls a thread loop that shows progress if long simulation"""
+        start = time.time()
+        # parallel thread
+        delay = 1.
+        timer = util.RepeatTimer(delay, util.progress, (self,))
+        timer.start()
+        # main thread
+        self.running = True
+        #self.step = 1 # !! self.step représente le temps présent à l'entrée dans System.doStep() !!
+        while self.step < self.n_step :
+            self.doStep()
+        self.running = False
+        timer.cancel()
+        delta = time.time() - start
+        print('exit System.run(), runtime = ' + '{:.3f}'.format(delta) + ' s')
+        return
+
+    def live(self) :
         return
 
 
 
 
 
+
+
+
+
+
+## Testing
+
+
+
+
+
+# test 1 : parent class System
+def test01() :
+    syst = System()
+    syst.run()
+    plt.plot(syst.times, syst.states)
+    plt.title('Baseline simulation for System()')
+    plt.xlabel('time')
+    plt.ylabel('state')
+    plt.show()
+    print('TEST 01 OK\n---------------------------------\n\n\n')
+    return
+
+
+
+# test 2 : input and run for BM
+def test02() :
+    syst = BM(nbr=30, dt=0.01, n_step=1000)
+    syst.run()
+    syst.info()
+    syst = BM(nbr=30, dt=0.01, end_time=10)
+    syst.info()
+    syst.run()
+    syst.info()
+    st = syst.getState()
+    plt.plot(np.arange(30), st)
+    plt.show()
+    print('TEST 02 OK\n---------------------------------\n\n\n')
+    return
+
+
+def test03() :
+    syst = BM(nbr=4, dt=0.01, end_time=10)
+    syst.run()
+
+    T = syst.getTimes()
+    Ys = syst.getStates()
+    Ys = np.transpose(np.array(Ys))
+    Ys = util.rescale(Ys)
+
+    # three agents' time series
+    util.display(T, Ys[0], name='3 series', color='r')
+    util.display(T, Ys[1], name='3 series', color='g')
+    util.display(T, Ys[2], name='3 series', color='b', ylabel='rescaled weight')
+
+    # all agents time serie
+    util.displayAll(T, Ys, name='all series', ylabel='rescaled weight')
+
+    # all time series, cumulated
+    util.displayAll(T, util.cumul(Ys), name='all series cumul', ylabel='rescaled weight (cumulative)')
+
+    # all wealth hisotgram, cumulated
+    N = np.shape(Ys)[0]
+    util.displayAll(np.arange(N), np.transpose(util.cumul(Ys)), name='all histograms cumul', ylabel='rescaled weight (cumulative)')
+
+    # rescaled cov matrix
+    util.displayMat(util.rcov(Ys), name='cov matrix')
+
+    # autocorrelation
+    util.display(T, util.rautocorr(Ys[0]), name='autocorr', color='r')
+    util.display(T, util.rautocorr(Ys[1]), name='autocorr', color='g')
+    util.display(T, util.rautocorr(Ys[2]), name='autocorr', color='b', ylabel='autocorrelation')
+
+    # autocovariance
+    util.display(T, util.rautocov(Ys[0]), name='autocov', color='r')
+    util.display(T, util.rautocov(Ys[1]), name='autocov', color='g')
+    util.display(T, util.rautocov(Ys[2]), name='autocov', color='b', ylabel='autocovariance')
+
+    # variogram
+    util.display(T, util.rvariogram(Ys[0]), name='variogram', color='r')
+    util.display(T, util.rvariogram(Ys[1]), name='variogram', color='g')
+    util.display(T, util.rvariogram(Ys[2]), name='variogram', color='b', ylabel='variogram')
+
+    # Y_2 index
+    util.display(T, util.Y2(Ys), name='Y2', ylabel='$Y_2$ index')
+
+    # histogram
+    util.displayHist(util.Y2(Ys), name='Y2_hist', ylabel='$Y_2$ index')
+
+    plt.show()
+    print('TEST 03 OK\n---------------------------------\n\n\n')
+    return
+
+
+
+
+
+
+
+def test04() :
+    # testing largeBM instanciation
+    syst = largeBM(nbr=30, dt=0.01, n_step=1000)
+    syst.run()
+    syst.info()
+    syst = largeBM(nbr=30, dt=0.01, end_time=10)
+    syst.info()
+    syst.run()
+    syst.info()
+    st = syst.getState()
+    plt.plot(np.arange(30), st)
+    plt.show()
+    print('TEST 04 OK\n---------------------------------\n\n\n')
+    return
+
+
+
+def test05() :
+    # testing largeBM
+    syst = largeBM(nbr=4, dt=0.01, end_time=20, noise_inpt=(1., 1.))
+    syst.run()
+
+    T = syst.getTimes()
+    Ys = syst.getStates()
+    Ys = np.transpose(np.array(Ys))
+
+    # three agents' time series
+    util.display(T, Ys[0], name='3 series', color='r')
+    util.display(T, Ys[1], name='3 series', color='g')
+    util.display(T, Ys[2], name='3 series', color='b', ylabel='weight')
+
+    # all agents time serie
+    util.displayAll(T, Ys, name='all series', ylabel='weight')
+
+    # all time series, cumulated
+    util.displayAll(T, util.cumul(Ys), name='all series cumul', ylabel='weight (cumulative)')
+
+    # all wealth hisotgram, cumulated
+    N = np.shape(Ys)[0]
+    util.displayAll(np.arange(N), np.transpose(util.cumul(Ys)), name='all histograms cumul', ylabel='weight (cumulative)')
+
+    # rescaled cov matrix
+    util.displayMat(util.rcov(Ys), name='cov matrix')
+
+    # autocorrelation
+    util.display(T, util.rautocorr(Ys[0]), name='autocorr', color='r')
+    util.display(T, util.rautocorr(Ys[1]), name='autocorr', color='g')
+    util.display(T, util.rautocorr(Ys[2]), name='autocorr', color='b', ylabel='autocorrelation')
+
+    # autocovariance
+    util.display(T, util.rautocov(Ys[0]), name='autocov', color='r')
+    util.display(T, util.rautocov(Ys[1]), name='autocov', color='g')
+    util.display(T, util.rautocov(Ys[2]), name='autocov', color='b', ylabel='autocovariance')
+
+    # variogram
+    util.display(T, util.rvariogram(Ys[0]), name='variogram', color='r')
+    util.display(T, util.rvariogram(Ys[1]), name='variogram', color='g')
+    util.display(T, util.rvariogram(Ys[2]), name='variogram', color='b', ylabel='variogram')
+
+    # Y_2 index
+    util.display(T, util.Y2(Ys), name='Y2', ylabel='$Y_2$ index')
+
+    # histogram
+    util.displayHist(util.Y2(Ys), name='Y2_hist', ylabel='$Y_2$ index')
+
+    plt.show()
+    print('TEST 05 OK\n---------------------------------\n\n\n')
+    return
+
+
+
+
+
+# test NNNNN: ...
+def test0NNNNN() :
+    #...
+    print('TEST 0NNNNN OK\n---------------------------------\n\n\n')
+    return
+
+
+
+
+
+
+## Dev
+"""edit here the code that should be added to this file"""

@@ -45,33 +45,38 @@ def buildMatrix(nbr=5, dyn='uni', param=1.) :
         matrix[j,j] = - s # s is the sum of all other transition rates : the matrix is thus stochastic
     return matrix
 
-def genNoise(nbr=5, rule='BMs', inpt=(1.,10.)) :
+def genNoise(nbr=5, rule='BMs', inpt=(1.,10.), retmat=True) :
     """generates a random matrix of shape (nbr, nbr) according to a certain rule ('rule')
     kwarg 'inpt' is a tuple that can contain some necessary parameters (ex. for a gaussian noise : mean and variance)
     uni --> uniformly in [0, 1[
     bin --> binomial (1 sample)
     pow --> power-tail law (Pareto here)
-    nrm --> normal law. INPUT : (mean,scale)=inpt
-    BMs --> normal law. INPUT : as 'nrm' but scale=np.sqrt(2)*inpt[1]"""
+    nrm --> normal law. INPUT : (m, sigm) := inpt
+    BMs --> normal law. INPUT : as 'nrm' but scale = np.sqrt(2)*sigm
+    lBM --> normal law. INPUT : as 'nrm' but scale = np.sqrt(2)*sigm and mean = -sigm**2"""
     if rule=='nrm' :
         mean, sigm = inpt
-        matrix = np.diag(np.random.normal(loc=mean, scale=sigm, size=nbr))
+        diag = np.random.normal(loc=mean, scale=sigm, size=nbr)
     elif rule=='BMs' :
         mean, sigm = inpt
-        matrix = np.diag(np.random.normal(loc=mean, scale=np.sqrt(2)*sigm, size=nbr))
+        diag = np.random.normal(loc=mean, scale=np.sqrt(2)*sigm, size=nbr)
+    elif rule=='lBM' :
+        mean, sigm = inpt
+        diag = np.random.normal(loc=-sigm**2, scale=np.sqrt(2)*sigm, size=nbr)
     elif rule=='uni' :
-        matrix = np.diag(np.random.uniform(size=nbr))
+        diag = np.random.uniform(size=nbr)
     elif rule=='bin' :
-        matrix = np.diag(np.random.binomial(n=1, size=nbr))
+        diag = np.random.binomial(n=1, size=nbr)
     elif rule=='pow' :
-        matrix = np.diag(np.random.pareto(size=nbr))
-    elif False :
-        print('Impossible !')
+        diag = np.random.pareto(size=nbr)
     else :
         print('ERROR - genNoise() - unknown noise rule, normal law used instead (mean=1., scale=10.)\nReminder :\n    uni --> uniformly in [0, 1[\n    bin --> binomial (1 sample)\n    pow --> power-tail law (Pareto here)\n    nrm --> normal law (scale=inpt[1]\n    BMs --> normal law where scale=np.sqrt(2)*inpt[1]')
         mean, sigm = 1.,10.
-        matrix = np.diag(np.random.normal(loc=mean, scale=sigm, size=nbr))
-    return matrix
+        diag = np.random.normal(loc=mean, scale=sigm, size=nbr)
+    if retmat :
+        return np.diag(diag)
+    else :
+        return diag
 
 def progress(syst) :
     """fancy printing of progress in a run of a simulation"""
@@ -231,3 +236,30 @@ style :
     if show : plt.show()
     return
 
+
+
+
+
+
+## Testing
+
+
+
+
+
+
+
+
+# test NNNNN: ...
+def test0NNNNN() :
+    #...
+    print('TEST 0NNNNN OK\n---------------------------------\n\n\n')
+    return
+
+
+
+
+
+
+## Dev
+"""edit here the code that should be added to this file"""

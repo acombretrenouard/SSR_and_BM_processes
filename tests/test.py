@@ -11,200 +11,45 @@ import sample
 ## Progressive tests
 """this section enables to test various features of the code that were edited progressively, and to ensure that no conflits arise with previous work"""
 
-def test00() :
-    print("test 00 : building a 'System' object")
-    syst = sample.core.System()
-    print(syst.nbr)
-    print(syst.state)
-    print(syst.J_0)
-    print(syst.noise)
-    print(syst.run)
-    syst.plotMatrix()
-    return
 
-
+# test 1 : parent class System
 def test01() :
-    print('test 1 : instanciation of class System')
     syst = sample.core.System()
-    a = syst.noise_inpt
-    print(syst.noise_inpt)
-    mat = sample.util.genNoise(nbr=4, rule='nrm')
-    print(mat)
-    return
-
-
-
-
-def test02() :
-    print('test 2 : System.doStep(), System.reset(), System.run(), syst.plotState()')
-    plt.close('all')
-    syst = sample.core.System()
-    for i in range(5) :
-        print('state at t=%i : '%i, syst.state)
-        syst.doStep()
-    syst.reset()
-    print('.after reset : ', syst.state)
     syst.run()
-    print('...after run : ', syst.state)
-    print('state at t=4 : ', syst.states[:,4])
-    syst.plotState()
+    plt.plot(syst.times, syst.states)
+    plt.title('Baseline simulation for System()')
+    plt.xlabel('time')
+    plt.ylabel('state')
     plt.show()
+    print('TEST 01 OK\n---------------------------------\n\n\n')
     return
 
 
 
+# test 2 : input and run for BM
+def test02() :
+    syst = sample.core.BM(nbr=30, dt=0.01, n_step=1000)
+    syst.run()
+    syst.info()
+    syst = sample.core.BM(nbr=30, dt=0.01, end_time=10)
+    syst.info()
+    syst.run()
+    syst.info()
+    st = syst.getState()
+    plt.plot(np.arange(30), st)
+    plt.show()
+    print('TEST 02 OK\n---------------------------------\n\n\n')
+    return
 
 
 def test03() :
-    print('test 3 : Syste.animateState()')
-    plt.close('all')
-    syst = sample.core.System()
-    syst.run()
-    syst.animateState()
-    plt.show()
-    return
-
-
-
-
-def test04() :
-    print('test 4 : inputs')
-    plt.close('all')
-    syst = sample.core.System(nbr=30, dt=0.01, n_step=1000)
-    syst.info()
-
-    syst = sample.core.System(nbr=30, dt=0.25, end_time=100)
-    syst.info()
-    syst.plotMatrix()
-    syst.run()
-    syst.animateState(log=False)
-    plt.show()
-    return
-
-
-
-
-def test05() :
-    print("test 5 : printing runtime (in System.run(), set 'delay' to 0.01)")
-    syst = sample.core.System(n_step=10000)
-    syst.run()
-    return
-
-
-
-
-
-def test06() :
-    print('test 6 : noise')
-    plt.close('all')
-    syst = sample.core.System(nbr=30, dt=0.01, end_time=100, dyn='mfd', noise='nrm', noise_inpt=(1.,10.))
-    syst.run()
-    syst.animateState()
-    plt.show()
-    return
-
-
-
-
-def test07() :
-    print('test 7 : BMtoolkit class, summing weights and plotting')
-    plt.close('all')
-    syst = sample.core.System(nbr=30, dt=0.025, end_time=99.976, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
-    syst.info()
-    syst.run()
-
-    tlk = sample.core.BMtoolkit()
-    tlk.load(syst)
-    tlk.avW()
-    tlk.plotData(log=True, key='av_w')
-    plt.show()
-    return
-
-
-
-
-def test08() :
-    print('test 8 : normalized average weight')
-    plt.close('all')
-    syst = sample.core.System(nbr=30, dt=0.01, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(1., 10.))
-    syst.run()
-    syst.info()
-
-    tlk = sample.core.BMtoolkit()
-    tlk.load(syst)
-    tlk.avW()
-    tlk.plotData(log=True, key='av_w', ylabel='average wealth')
-    tlk.normAvW()
-    tlk.plotData(log=False, key='n_av_w')
-    plt.show()
-    return
-
-
-
-
-
-def test09() :
-    print('test 9 : rescale function')
-    syst = sample.core.System(nbr=5, dt=0.01, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(0.3, 0.04))
-    syst.run()
-
-    tlk = sample.core.BMtoolkit()
-    tlk.load(syst)
-    tlk.avW()
-    print(tlk.data['av_w'][:5])
-    tlk.rescale()
-    print(tlk.data['rsc_states'][:5])
-    for i in [0,100,1000] :
-        print(np.sum(tlk.data['rsc_states'][:,i]))
-    return
-
-
-
-
-
-
-
-
-def test10() :
-    print('test 10 : testing genNoise() parameters')
-    syst = System(nbr=30, dt=0.01, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(1., 10.))
-    syst.run()
-    syst.info()
-    for i in range(3) :
-        mat = sample.util.genNoise(nbr=syst.nbr, rule=syst.noise, inpt=syst.noise_inpt)
-        print(mat)
-    return
-
-
-
-
-
-
-def test11() :
-    print('test 11 : time indexation')
-    syst = sample.core.System(n_step=6, dt=0.3)
-    syst.run()
-
-    tf = syst.time
-    end_time = syst.end_time
-    T = syst.T
-    Ts = np.linspace(0., end_time, T)
-    syst.run()
-    tf = syst.time
-    print('Ts : ', Ts)
-    print('tf : ', tf)
-    print('end_time : ', end_time)
-    print('states[0](t) : ', syst.states[0,:])
-    return
-
-
-
-def test12() :
-    syst = sample.core.System(nbr=30, dt=0.01, end_time=10, dyn='mfd', noise='BMs', noise_inpt=(1., 10.))
+    syst = sample.core.BM(nbr=4, dt=0.01, end_time=10)
     syst.run()
 
     T = syst.getTimes()
-    Ys = np.copy(sample.util.rescale(syst.states))
+    Ys = syst.getStates()
+    Ys = np.transpose(np.array(Ys))
+    Ys = sample.util.rescale(Ys)
 
     # three agents' time series
     sample.util.display(T, Ys[0], name='3 series', color='r')
@@ -245,33 +90,99 @@ def test12() :
     # histogram
     sample.util.displayHist(sample.util.Y2(Ys), name='Y2_hist', ylabel='$Y_2$ index')
 
-    # other ?
+    plt.show()
+    print('TEST 03 OK\n---------------------------------\n\n\n')
+    return
+
+
+
+
+
+
+
+def test04() :
+    # testing largeBM instanciation
+    syst = sample.core.largeBM(nbr=30, dt=0.01, n_step=1000)
+    syst.run()
+    syst.info()
+    syst = sample.core.largeBM(nbr=30, dt=0.01, end_time=10)
+    syst.info()
+    syst.run()
+    syst.info()
+    st = syst.getState()
+    plt.plot(np.arange(30), st)
+    plt.show()
+    print('TEST 04 OK\n---------------------------------\n\n\n')
+    return
+
+
+
+def test05() :
+    # testing largeBM
+    syst = sample.core.largeBM(nbr=4, dt=0.01, end_time=20, noise_inpt=(1., 1.))
+    syst.run()
+
+    T = syst.getTimes()
+    Ys = syst.getStates()
+    Ys = np.transpose(np.array(Ys))
+
+    # three agents' time series
+    sample.util.display(T, Ys[0], name='3 series', color='r')
+    sample.util.display(T, Ys[1], name='3 series', color='g')
+    sample.util.display(T, Ys[2], name='3 series', color='b', ylabel='weight')
+
+    # all agents time serie
+    sample.util.displayAll(T, Ys, name='all series', ylabel='weight')
+
+    # all time series, cumulated
+    sample.util.displayAll(T, sample.util.cumul(Ys), name='all series cumul', ylabel='weight (cumulative)')
+
+    # all wealth hisotgram, cumulated
+    N = np.shape(Ys)[0]
+    sample.util.displayAll(np.arange(N), np.transpose(sample.util.cumul(Ys)), name='all histograms cumul', ylabel='weight (cumulative)')
+
+    # rescaled cov matrix
+    sample.util.displayMat(sample.util.rcov(Ys), name='cov matrix')
+
+    # autocorrelation
+    sample.util.display(T, sample.util.rautocorr(Ys[0]), name='autocorr', color='r')
+    sample.util.display(T, sample.util.rautocorr(Ys[1]), name='autocorr', color='g')
+    sample.util.display(T, sample.util.rautocorr(Ys[2]), name='autocorr', color='b', ylabel='autocorrelation')
+
+    # autocovariance
+    sample.util.display(T, sample.util.rautocov(Ys[0]), name='autocov', color='r')
+    sample.util.display(T, sample.util.rautocov(Ys[1]), name='autocov', color='g')
+    sample.util.display(T, sample.util.rautocov(Ys[2]), name='autocov', color='b', ylabel='autocovariance')
+
+    # variogram
+    sample.util.display(T, sample.util.rvariogram(Ys[0]), name='variogram', color='r')
+    sample.util.display(T, sample.util.rvariogram(Ys[1]), name='variogram', color='g')
+    sample.util.display(T, sample.util.rvariogram(Ys[2]), name='variogram', color='b', ylabel='variogram')
+
+    # Y_2 index
+    sample.util.display(T, sample.util.Y2(Ys), name='Y2', ylabel='$Y_2$ index')
+
+    # histogram
+    sample.util.displayHist(sample.util.Y2(Ys), name='Y2_hist', ylabel='$Y_2$ index')
 
     plt.show()
+    print('TEST 05 OK\n---------------------------------\n\n\n')
     return
 
 
 
 
 
-
-
-
-def all() :
-    test00()
-    test01()
-    test02()
-    test03()
-    test04()
-    test05()
-    test06()
-    test07()
-    test08()
-    test09()
-    test10()
-    test11()
-    test12()
+# test NNNNN: ...
+def test0NNNNN() :
+    #...
+    print('TEST 0NNNNN OK\n---------------------------------\n\n\n')
     return
+
+
+
+
+
 
 
 ## Dev
