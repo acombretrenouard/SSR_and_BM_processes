@@ -81,7 +81,7 @@ def genNoise(nbr=5, rule='BMs', inpt=(1.,10.), retmat=True) :
 def progress(syst) :
     """fancy printing of progress in a run of a simulation"""
     if syst.running :
-        pc = 100.*float(syst.t)/float(syst.T)
+        pc = 100.*float(syst.time)/float(syst.end_time)
         print('Run in progess : ' + "{:.1f}".format(pc) + ' %')
     else :
         print('Not running')
