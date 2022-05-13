@@ -150,11 +150,6 @@ Inputs :
         self.etas = np.zeros((self.nbr, self.nbr, self.n_step)) # storage
         return
 
-    def rebuildMatrix(self, p=1.) :
-        """Allows to input a parameter in the matrix."""
-        self.J_0 = util.buildMatrix(nbr=self.nbr, dyn=self.dyn, param=p)
-        return
-
     def info(self) :
         """Prints info about the instance of class System."""
         if len(str(self.state)) > 36 :
