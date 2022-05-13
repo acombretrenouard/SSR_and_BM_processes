@@ -1,6 +1,6 @@
 """utility functions : build, in/out, etc..."""
 
-## imports
+## Imports
 
 import threading
 import numpy as np
@@ -15,7 +15,19 @@ import matplotlib.colors as colors
 
 
 def buildMatrix(nbr=5, dyn='uni', param=1.) :
-    """builds a stochastic matrix, corresponding to the specified dynamic (with kwarg. 'dyn')
+    """sample.util.buildMatrix(nbr=5, dyn='uni', param=1.)
+
+Builds a stochastic matrix, corresponding to the specified dynamic (with kwarg. 'dyn').
+
+Input :
+    int nbr : size of the matrix (square)
+    str dyn : type of dynamics embodied by the matrix
+    float param : parameter relevent to the dynamic's type (ex : for Bouchaud-Mézard model, this could be J).
+
+Output :
+    ndarray of shape (nbr, nbr)
+
+Dynamical rules :
         uni --> uniformly in [0, 1[
         mfd --> mean field (all coef. equal to param/n_states, "param" is equivalent to "J")
         bin --> binomial (1 sample with probability param)
@@ -46,8 +58,20 @@ def buildMatrix(nbr=5, dyn='uni', param=1.) :
     return matrix
 
 def genNoise(nbr=5, rule='BMs', inpt=(1.,10.), retmat=True) :
-    """generates a random matrix of shape (nbr, nbr) according to a certain rule ('rule')
-    kwarg 'inpt' is a tuple that can contain some necessary parameters (ex. for a gaussian noise : mean and variance)
+    """sample.util.genNoise(nbr=5, rule='BMs', inpt=(1.,10.), retmat=True)
+
+Generates a random matrix of shape (nbr, nbr) according to a certain rule ('rule').
+
+Input :
+    int nbr : size of vector / matrix generated
+    str rule : specifies the noise generating rule according to the correspondance below
+    tuple inpt : float parameters relevant to the distribution specified by 'rule'
+    bool retmat : returns a matrix of size nbr by nbr if set to True. Returns a nbr-dimensional vector otherwise.
+
+Output :
+    ndarray of shape (nbr, nbr) or shape (nbr,) depending on 'retmat'.
+
+Meaning of 'rule' :
     uni --> uniformly in [0, 1[
     bin --> binomial (1 sample)
     pow --> power-tail law (Pareto here)
@@ -79,7 +103,7 @@ def genNoise(nbr=5, rule='BMs', inpt=(1.,10.), retmat=True) :
         return diag
 
 def progress(syst) :
-    """fancy printing of progress in a run of a simulation"""
+    """Fancy printing of progress in a run of a simulation."""
     if syst.running :
         pc = 100.*float(syst.time)/float(syst.end_time)
         print('Run in progess : ' + "{:.1f}".format(pc) + ' %')
@@ -88,6 +112,7 @@ def progress(syst) :
     return
 
 class RepeatTimer(threading.Timer):
+    """Parallel thread used to display runtime."""
     def run(self):
         while not self.finished.wait(self.interval):
             self.function(*self.args, **self.kwargs)
@@ -96,11 +121,12 @@ class RepeatTimer(threading.Timer):
 
 
 
-## functions on a single time serie
+## Functions for 1D time serie
 
 def rautocorr(Y) :
-    """Y is a 1-dimensionnal time sequence, returns the *rescaled* autocorrelation time-serie (of same length
-! beware : the value for large lag are not trustable !"""
+    """Y is a 1-dimensionnal time sequence, returns the *rescaled* autocorrelation time-serie (of same length).
+
+! beware : the value for large lag-time are not trustable !"""
     list = []
     T = np.shape(Y)[0]
     for tau in range(T) :
@@ -114,8 +140,9 @@ def rautocorr(Y) :
     return  acr/var # implicit
 
 def rautocov(Y) :
-    """Y is a 1-dimensional time sequence, returns the *rescaled* autocovariance time-serie (of same length
-! beware : the value for large lag are not trustable !"""
+    """Y is a 1-dimensional time sequence, returns the *rescaled* autocovariance time-serie (of same length).
+
+! beware : the value for large lag-time are not trustable !"""
     list = []
     T = np.shape(Y)[0]
     for tau in range(T) :
@@ -130,8 +157,9 @@ def rautocov(Y) :
     return  (acr-m**2)/var # implicit
 
 def rvariogram(Y) :
-    """Y is a 1-dimensional time sequence, returns the *rescaled* variogram time-serie (of same length
-! beware : the value for large lag are not trustable !"""
+    """Y is a 1-dimensional time sequence, returns the *rescaled* variogram time-serie (of same length).
+
+! beware : the value for large lag-time are not trustable !"""
     list = []
     T = np.shape(Y)[0]
     for tau in range(T) :
@@ -150,34 +178,38 @@ def doHist(Y, log=False) :
     hist, edges = np.histogram(Y, bins=barg, density=True)
     return hist, edges
 
-## function on a set of time series
+## Function for multi-D time series
 
 def rcov(Ys) :
     """Ys is a N-dimensional time sequence, returns the *rescaled* covariance matrix
-the time axis is axis 1"""
+the time axis is axis 1."""
     cov = np.cov(Ys)
     gm = gmean(np.diagonal(cov))
     return cov/gm
 
 def Y2(Ys) :
-    """return the Y_2-index time serie as defined in BM2000"""
+    """Returns the Y_2-index time serie as defined in BM2000."""
     Y2 = np.sum(Ys**2, axis=0)
     return Y2
 
 def rescale(Ys) :
-    """rescale each timestep by the average (agent wise)"""
+    """Rescales each timestep by the average (agent wise).
+
+Ex : if agents are indexed along axis 0 and timestamps along axis 1, this rescale each agent's weight by the average agent-wise weight."""
     return Ys/np.mean(Ys, axis=0) # implicit np.multiply()
 
 def cumul(Ys) :
-    """returns the cumulative weights for 0 to N (along axis 0)"""
+    """Returns the cumulative weights along axis 0 (summing from top to bottom)."""
     return np.cumsum(Ys, axis=0)
 
 
 
-## display functions
+## Display functions
 
 def display(T, Y, ylabel='', log=False, name='fig1', show=False, color='b') :
-    """Y is a 1-dimensional time-serie, diplays it"""
+    """sample.util.display(T, Y, ylabel='', log=False, name='fig1', show=False, color='b')
+
+Y is a 1-dimensional time-serie, diplays it."""
     plt.figure(name)
     if log :
         plt.yscale('log')
@@ -188,7 +220,9 @@ def display(T, Y, ylabel='', log=False, name='fig1', show=False, color='b') :
     return
 
 def displayHist(Y, ylabel='', log=False, name='fig1', show=False) :
-    """plots the histogram of the flattenned array Y"""
+    """sample.util.displayHist(Y, ylabel='', log=False, name='fig1', show=False)
+
+Plots the histogram of the flattened array Y."""
     copy = Y.flatten()
     plt.figure(name)
     if log :
@@ -204,8 +238,11 @@ def displayHist(Y, ylabel='', log=False, name='fig1', show=False) :
     return
 
 def displayAll(T, Ys, ylabel='', log=False, name='fig1', show=False) :
-    """Ys is a N-dimensional time-serie, diplays all the curves in a bundle
-the time axis is axis 1"""
+    """sample.util.displayAll(T, Ys, ylabel='', log=False, name='fig1', show=False)
+
+Ys is a N-dimensional time-serie, diplays all the curves in a bundle.
+
+The time axis is axis 1."""
     cmap = matplotlib.cm.get_cmap('plasma')
     N = np.shape(Ys)[0]
     for i in range(N) :
@@ -215,9 +252,13 @@ the time axis is axis 1"""
     if show : plt.show()
     return
 
+
 def displayMat(mat, name='fig1', show=False, style='cor') :
-    """plots the matrix mat
-style :
+    """sample.util.displayMat(mat, name='fig1', show=False, style='cor')
+
+Plots the matrix mat.
+
+Rule for 'style' :
     'cor' for a cmap centered on 0
     ..."""
     # show matrix
@@ -234,26 +275,6 @@ style :
     plt.colorbar(im, cax=cax)
     # show
     if show : plt.show()
-    return
-
-
-
-
-
-
-## Testing
-
-
-
-
-
-
-
-
-# test NNNNN: ...
-def test0NNNNN() :
-    #...
-    print('TEST 0NNNNN OK\n---------------------------------\n\n\n')
     return
 
 

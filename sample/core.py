@@ -26,8 +26,12 @@ import sample.util as util
 
 
 class System(object):
-    """defines the parents class common to all systems (SSR, BM, largeBM...)
-baseline state is 1-dimensional"""
+    """sample.core.System(self, n_step=100, end_time=10)
+
+Defines the parents class common to all systems (SSR, BM, largeBM...).
+Baseline state is 1-dimensional.
+
+See classes BM and largeBM for details."""
 
     def __init__(self, n_step=100, end_time=10) :
         # current step
@@ -47,26 +51,29 @@ baseline state is 1-dimensional"""
         return
 
     def info(self) :
-        """prints info about the instance of class System"""
+        """Prints info about the instance of class System."""
         return
 
     def getTime(self) :
+        """Returns a copy of the current time."""
         return copy.copy(self.time)
 
     def getTimes(self) :
+        """Returns a copy of all the sample times (independent instance)."""
         return copy.copy(self.times)
 
     def getState(self) :
+        """Returns a copy of the curent state."""
         return copy.copy(self.state)
 
     def getStates(self) :
+        """Returns a copy of all the sampled states (independent instance)."""
         return copy.copy(self.states)
 
     def doStep(self) :
-        """forwards the state by 0.1
-        before System.doStep() : System.t is the index of input variables (state(t), J(t)...)
-        after System.doStep()  : System.t is the index of output variables (state(d+dt))
-        (same for System.time)"""
+        """Forwards the state by 0.1.
+Before System.doStep() : System.time is the index of input variables (state(t), J(t)...)
+After System.doStep() : System.time is the index of output variables (state(d+dt))."""
         # calc
         self.state = np.sin(self.time+0.1) # self.state(t+dt) = np.sin(t+dt)
         # increment
@@ -78,8 +85,8 @@ baseline state is 1-dimensional"""
         return
 
     def run(self) :
-        """calculates all states from n°1 to n°T-1 (n°0 is set by default)
-        calls a thread loop that shows progress if long simulation"""
+        """Calculates all states from n°1 to n°T-1 (n°0 is set by default).
+Calls a thread loop that shows progress if long simulation."""
         start = time.time()
         # parallel thread
         delay = 1.
@@ -98,20 +105,26 @@ baseline state is 1-dimensional"""
 
 
     def live(self, log=False) :
-        """animates the simulation once done, depending on wich system it is"""
+        """Animates the simulation once done, depending on wich system it is."""
         return
 
 
 
 class BM(System):
-    """defines a dynamical system with a macrostate distribution function and a first-order linear master equation
-    Inputs :
-        int n_step : number of step that will be simulated
-        float dt : time resolution
-        float end_time : duration of the simulation (optionnal, has priority over the specified 'n_step')
-        int nbr : number of coordinates for a state
-        str dyn : type of dynamic used for the master equation
-        str noise : type of noise, '' if no noise"""
+    """sample.core.BM(self, n_step=100, dt=0.1, end_time=-1., nbr=5, dyn='mfd', dyn_inpt=1., noise='BMs', noise_inpt=(1.,10.))
+
+Defines a dynamical system with a macrostate distribution function and a first-order linear master equation. Intended to model the Bouchaud-Mézard model.
+
+Inputs :
+    int n_step     : number of step that will be simulated
+    float dt       : time resolution
+    float end_time : duration of the simulation (optionnal, has priority over the specified 'n_step')
+    int nbr        : number of coordinates for a state
+    str dyn        : type of dynamic used for the master equation
+    int dyn_inpt   : parameter for the dynamical rule (matrix). Default is 1.
+    str noise      : type of noise, '' if no noise
+    tuple noise_inpt : parameters for the noise generating function
+    """
 
     def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, dyn='mfd', dyn_inpt=1., noise='BMs', noise_inpt=(1.,10.)) :
         System.__init__(self, n_step=n_step, end_time=end_time)
@@ -138,12 +151,12 @@ class BM(System):
         return
 
     def rebuildMatrix(self, p=1.) :
-        """allows to input a parameter in the matrix"""
+        """Allows to input a parameter in the matrix."""
         self.J_0 = util.buildMatrix(nbr=self.nbr, dyn=self.dyn, param=p)
         return
 
     def info(self) :
-        """prints info about the instance of class System"""
+        """Prints info about the instance of class System."""
         if len(str(self.state)) > 36 :
             st = str(self.state)[:36]+'...'
         else :
@@ -156,24 +169,12 @@ class BM(System):
         print("-------------------------------------------------------------\n\n")
         return
 
-    def getTime(self) :
-        return copy.copy(self.time)
-
-    def getTimes(self) :
-        return copy.copy(self.times)
-
-    def getState(self) :
-        return copy.copy(self.state)
-
-    def getStates(self) :
-        return copy.copy(self.states)
-
-
     def doStep(self) :
-        """forwards the state by dt
-        before System.doStep() : System.t is the index of input variables (state(t), J(t)...)
-        after System.doStep()  : System.t is the index of output variables (state(d+dt))
-        (same for System.time)"""
+        """Forwards the state by dt.
+
+Before System.doStep() : System.time is the index of input variables (state(t). J(t)...)
+After System.doStep() : System.time is the index of output variables (state(d+dt)).
+No input, no output."""
         # setting the matrix
         if self.noise != 'no noise' :
             self.eta = util.genNoise(nbr=self.nbr, rule=self.noise, inpt=self.noise_inpt)
@@ -192,8 +193,10 @@ class BM(System):
         return
 
     def run(self) :
-        """calculates all states from n°1 to n°T-1 (n°0 is set by default)
-        calls a thread loop that shows progress if long simulation"""
+        """Calculates all states from n°1 to n°T-1 (n°0 is set by default).
+
+Calls a thread loop that shows progress if long simulation.
+No input, no output."""
         start = time.time()
         # parallel thread
         delay = 1.
@@ -211,6 +214,7 @@ class BM(System):
         return
 
     def live(self) :
+        """Animates the simulation once done, depending on wich system it is."""
         return
 
 
@@ -220,7 +224,18 @@ class BM(System):
 
 
 class largeBM(System) :
-    """defines the uncorrelated version of the BM mode (see eq. 5 in BM2000)"""
+    """sample.core.largeBM(self, n_step=100, dt=0.1, end_time=-1., nbr=5, noise='lBM', noise_inpt=(1.,10.))
+
+Defines the uncorrelated version of the BM mode (see eq. 5 in BM2000).
+
+Input :
+    int n_step     : number of step that will be simulated
+    float dt       : time resolution
+    float end_time : duration of the simulation (optionnal, has priority over the specified 'n_step')
+    int nbr        : number of coordinates for a state
+    str noise      : type of noise, '' if no noise
+    tuple noise_inpt : parameters for the noise generating function"""
+
     def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, noise='lBM', noise_inpt=(1.,10.)) :
         System.__init__(self, n_step=n_step, end_time=end_time)
         # simulation parameters
@@ -246,7 +261,7 @@ class largeBM(System) :
 
 
     def info(self) :
-        """prints info about the instance of class System"""
+        """Prints info about the instance of class System."""
         if len(str(self.state)) > 36 :
             st = str(self.state)[:36]+'...'
         else :
@@ -259,24 +274,12 @@ class largeBM(System) :
         print("-------------------------------------------------------------\n\n")
         return
 
-    def getTime(self) :
-        return copy.copy(self.time)
-
-    def getTimes(self) :
-        return copy.copy(self.times)
-
-    def getState(self) :
-        return copy.copy(self.state)
-
-    def getStates(self) :
-        return copy.copy(self.states)
-
-
     def doStep(self) :
-        """forwards the state by dt
-        before System.doStep() : System.t is the index of input variables (state(t), J(t)...)
-        after System.doStep()  : System.t is the index of output variables (state(d+dt))
-        (same for System.time)"""
+        """Forwards the state by dt.
+
+Before System.doStep() : System.time is the index of input variables (state(t), J(t)...).
+After System.doStep()  : System.time is the index of output variables (state(d+dt)).
+No input, no output."""
         # setting the noise vector
         self.eta = util.genNoise(nbr=self.nbr, rule=self.noise, inpt=self.noise_inpt, retmat=False)
         self.etas[:,self.step] = self.eta # storage
@@ -291,8 +294,10 @@ class largeBM(System) :
         return
 
     def run(self) :
-        """calculates all states from n°1 to n°T-1 (n°0 is set by default)
-        calls a thread loop that shows progress if long simulation"""
+        """Calculates all states from n°1 to n°T-1 (n°0 is set by default).
+
+Calls a thread loop that shows progress if long simulation.
+No input, no output."""
         start = time.time()
         # parallel thread
         delay = 1.
@@ -310,6 +315,7 @@ class largeBM(System) :
         return
 
     def live(self) :
+        """Animates the simulation once done, depending on wich system it is."""
         return
 
 
@@ -327,8 +333,9 @@ class largeBM(System) :
 
 
 
-# test 1 : parent class System
+
 def test01() :
+    """test 1 : parent class System"""
     syst = System()
     syst.run()
     plt.plot(syst.times, syst.states)
@@ -341,8 +348,9 @@ def test01() :
 
 
 
-# test 2 : input and run for BM
+
 def test02() :
+    """test 2 : input and run for BM"""
     syst = BM(nbr=30, dt=0.01, n_step=1000)
     syst.run()
     syst.info()
@@ -358,6 +366,7 @@ def test02() :
 
 
 def test03() :
+    """test 3 : extensive plotting"""
     syst = BM(nbr=4, dt=0.01, end_time=10)
     syst.run()
 
@@ -416,7 +425,7 @@ def test03() :
 
 
 def test04() :
-    # testing largeBM instanciation
+    """test 4 : testing largeBM instanciation"""
     syst = largeBM(nbr=30, dt=0.01, n_step=1000)
     syst.run()
     syst.info()
@@ -433,7 +442,7 @@ def test04() :
 
 
 def test05() :
-    # testing largeBM
+    """test 5 : testing largeBM"""
     syst = largeBM(nbr=4, dt=0.01, end_time=20, noise_inpt=(1., 1.))
     syst.run()
 
