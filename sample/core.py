@@ -12,9 +12,9 @@ import os
 import time
 import copy
 # own modules
-# normal
+# \/ normal \/
 #from . import util
-# for testing
+# \/ for testing \/
 import sys
 sys.path.append('/Users/antoine/Documents/X/3A/stages 3A/CSH Vienne/code')
 import sample.util as util
@@ -113,7 +113,7 @@ class BM(System):
         str dyn : type of dynamic used for the master equation
         str noise : type of noise, '' if no noise"""
 
-    def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, dyn='mfd', noise='BMs', noise_inpt=(1.,10.)) :
+    def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, dyn='mfd', dyn_inpt=1., noise='BMs', noise_inpt=(1.,10.)) :
         System.__init__(self, n_step=n_step, end_time=end_time)
         # simulation parameters
         self.dt = dt
@@ -132,7 +132,7 @@ class BM(System):
         self.dyn = dyn
         self.noise = noise
         self.noise_inpt = noise_inpt
-        self.J_0 = util.buildMatrix(nbr=self.nbr, dyn=self.dyn, param=1.)
+        self.J_0 = util.buildMatrix(nbr=self.nbr, dyn=self.dyn, param=dyn_inpt)
         self.eta = np.zeros((self.nbr, self.nbr))
         self.etas = np.zeros((self.nbr, self.nbr, self.n_step)) # storage
         return
