@@ -317,6 +317,59 @@ No input, no output."""
 
 
 
+class SSR(System) :
+
+    def __init__(self, nbr=10, rate=1., n_step=100) :
+        System.__init__(self)
+        self.nbr = nbr
+        self.rate = rate
+        return
+
+    def info(self) :
+        return
+
+    def doStep(self) :
+        """Forwards the state by dt.
+
+Before System.doStep() : System.time is the index of input variables (state(t). J(t)...)
+After System.doStep() : System.time is the index of output variables (state(d+dt)).
+No input, no output."""
+        # update state
+        if self.state == 0 :
+            self.state = self.nbr - 1
+            dt = np.random.exponential(scale=self.rate*1)
+        else :
+            dt = np.random.exponential(scale=self.rate/self.state)
+            self.state = np.random.randint(0, self.state)
+        # increment
+        self.time += dt
+        self.step += 1
+        # memory
+        self.states.append(self.getState())
+        self.times.append(self.getTime())
+        return
+
+
+    def run(self) :
+        """Calculates all states from n°1 to n°T-1 (n°0 is set by default).
+
+Calls a thread loop that shows progress if long simulation.
+No input, no output."""
+        start = time.time()
+        # parallel thread
+        delay = 1.
+        timer = util.RepeatTimer(delay, util.progress, (self,))
+        timer.start()
+        # main thread
+        self.running = True
+        #self.step = 1 # !! self.step représente le temps présent à l'entrée dans System.doStep() !!
+        while self.step < self.n_step :
+            self.doStep()
+        self.running = False
+        timer.cancel()
+        delta = time.time() - start
+        print('exit System.run(), runtime = ' + '{:.3f}'.format(delta) + ' s')
+        return
 
 
 
@@ -490,7 +543,19 @@ def test05() :
 
 
 
-
+def test06() :
+    """test 6 : testing SSR instanciation"""
+    syst = SSR(nbr=30, n_step=1000)
+    syst.run()
+    syst.info()
+    syst = SSR(nbr=300, n_step=100)
+    syst.run()
+    ts = syst.getTimes()
+    st = syst.getStates()
+    plt.plot(ts, st)
+    plt.show()
+    print('TEST 06 OK\n---------------------------------\n\n\n')
+    return
 
 # test NNNNN: ...
 def test0NNNNN() :
