@@ -231,7 +231,7 @@ Input :
     str noise      : type of noise, '' if no noise
     tuple noise_inpt : parameters for the noise generating function"""
 
-    def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, dyn_inpt=1. noise='lBM', noise_inpt=(1.,10.)) :
+    def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, dyn_inpt=1., noise='lBM', noise_inpt=(1.,10.)) :
         System.__init__(self, n_step=n_step, end_time=end_time)
         # simulation parameters
         self.dt = dt
