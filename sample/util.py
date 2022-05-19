@@ -34,7 +34,8 @@ Dynamical rules :
         pow --> power-tail law (Pareto here)
         nrm --> normal law
         ssr --> ssr process (with state no <-> energy)
-        BGe --> Boltzmann-Gibbs equilibrium"""
+        BGe --> Boltzmann-Gibbs equilibrium
+        aph --> asymetrical mean-field model with an alpha parameter"""
     matrix = np.zeros((nbr,nbr), dtype=float)
     for j in range(nbr) :
         s = 0
@@ -49,12 +50,16 @@ Dynamical rules :
                 if i<j : rate = 1/j
                 elif (i==nbr-1 and j==0) : rate=1
             elif dyn=='BGe' : print('ERROR buildMatrix : dyn BGe not done yet')
+            elif dyn=='aph' : rate = param/nbr
             else :
                 print('DynamicalRule.initialize() ERROR : unknown distribution, uniform used instead\n Reminder :\n    uni --> uniformly in [0, 1[\n    bin --> binomial (1 sample)\n    pow --> power-tail law (Pareto here)\n    nrm --> normal law')
                 rate = np.random.uniform()
             matrix[i,j] = rate
             if i != j : s += rate
         matrix[j,j] = - s # s is the sum of all other transition rates : the matrix is thus stochastic
+    if dyn=='aph' :
+        factor = (np.ones((nbr, nbr)) - np.eye(nbr))*0.99 + np.eye(nbr)
+        matrix = np.multiply(matrix, factor)
     return matrix
 
 def genNoise(nbr=5, rule='BMs', inpt=(1.,10.), retmat=True) :
