@@ -229,6 +229,7 @@ Input :
     float end_time : duration of the simulation (optionnal, has priority over the specified 'n_step')
     int nbr        : number of coordinates for a state
     str noise      : type of noise, '' if no noise
+    float dyn_inpt : parameter for the markovian matrix
     tuple noise_inpt : parameters for the noise generating function"""
 
     def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, dyn_inpt=1., noise='lBM', noise_inpt=(1.,10.)) :
