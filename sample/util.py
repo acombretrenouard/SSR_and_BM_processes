@@ -58,7 +58,7 @@ Dynamical rules :
             if i != j : s += rate
         matrix[j,j] = - s # s is the sum of all other transition rates : the matrix is thus stochastic
     if dyn=='aph' :
-        factor = (np.ones((nbr, nbr)) - np.eye(nbr))*0.99 + np.eye(nbr)
+        factor = (np.ones((nbr, nbr)) - np.eye(nbr))*0.9 + np.eye(nbr)
         matrix = np.multiply(matrix, factor)
     return matrix
 
