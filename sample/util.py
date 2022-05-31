@@ -187,7 +187,9 @@ def doHist(Y, log=False) :
 
 def rcov(Ys) :
     """Ys is a N-dimensional time sequence, returns the *rescaled* covariance matrix
-the time axis is axis 1."""
+the time axis is axis 1.
+
+Rq : the rescale coefficient must be the Pearson correlation coefficient !!"""
     cov = np.cov(Ys)
     gm = gmean(np.diagonal(cov))
     return cov/gm
