@@ -17,7 +17,7 @@ import copy
 #from . import util
 # \/ for testing \/
 import sys
-sys.path.append('/Users/antoine/Documents/X/3A/stages 3A/CSH Vienne/code')
+sys.path.append('/Users/antoine/Documents/X/3A/stages_3A/CSH_Vienne/code')
 import sample.util as util
 
 
