@@ -112,22 +112,32 @@ Calls a thread loop that shows progress if long simulation."""
 
 
 class BM(System):
-    """sample.core.BM(self, n_step=100, dt=0.1, end_time=-1., nbr=5, dyn='mfd', dyn_inpt=1., noise='BMs', noise_inpt=(1.,10.))
+    """sample.core.BM(self, n_step=100, dt=0.1, end_time=-1., nbr=5, m=0.1, sigma=2., J=1.)
 
-Defines a dynamical system with a macrostate distribution function and a first-order linear master equation. Intended to model the Bouchaud-Mézard model.
+
+Description :
+-----
+Models the finite and not rescaled Bouchaud-Mézard model as described in Bouchaud-Mézard (2000) in Eq. 2. Uses the Ito-stochastic differential equation formalism.
+
+The SDE that is modelled is :
+    dW_i = A_i*dt + B_ii*dµ_i
+where µ_i(t) are the Wiener processes.
+We have :
+    A_i = ∑(J_ij*W_j) - ∑(J_ji*W_i) + (m + sigma^2)*W_i = mat*W
+    B_ii = sqrt(2)*sigma*W_i
+
 
 Inputs :
+-----
     int n_step     : number of step that will be simulated
     float dt       : time resolution
     float end_time : duration of the simulation (optionnal, has priority over the specified 'n_step')
     int nbr        : number of coordinates for a state
-    str dyn        : type of dynamic used for the master equation
-    int dyn_inpt   : parameter for the dynamical rule (matrix). Default is 1.
-    str noise      : type of noise, '' if no noise
-    tuple noise_inpt : parameters for the noise generating function
+    float m        : 'm' paramater in Bouchaud, Mézard (2000)
+    float sigma    : 'sigma' paramater in Bouchaud, Mézard (2000)
     """
 
-    def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, dyn='mfd', dyn_inpt=1., noise='BMs', noise_inpt=(1.,10.)) :
+    def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, m=0.1, sigma=2., J=1.) :
         System.__init__(self, n_step=n_step, end_time=end_time)
         # simulation parameters
         self.dt = dt
@@ -138,29 +148,27 @@ Inputs :
             self.end_time = (self.n_step)*self.dt
         # state initialization
         self.nbr = nbr
+        self.m = m
+        self.sigma = sigma
+        self.J = J
         self.state = np.zeros(self.nbr, dtype='float')
         self.state += 1.
         self.states = []
         self.states.append(copy.copy(self.state))
         # dynamics
-        self.dyn = dyn
-        self.noise = noise
-        self.noise_inpt = noise_inpt
-        self.J_0 = util.buildMatrix(nbr=self.nbr, dyn=self.dyn, param=dyn_inpt)
-        self.eta = np.zeros((self.nbr, self.nbr))
-        self.etas = np.zeros((self.nbr, self.nbr, self.n_step)) # storage
+        self.mat = self.J/self.nbr*np.ones((self.nbr, self.nbr)) + (-(self.nbr-1)*self.J/self.nbr + self.m + self.sigma**2)*np.eye(self.nbr)
         return
 
     def info(self) :
-        """Prints info about the instance of class System."""
+        """Prints info about the instance of class BM."""
         if len(str(self.state)) > 36 :
             st = str(self.state)[:36]+'...'
         else :
             st = str(self.state)
-        print("\n Object 'System' n°" + str(id(self)))
+        print("\n Object 'BM' n°" + str(id(self)))
         print("-------------------------------------------------------------")
         print(' Simulation parameters\n     samples      : %d\n     length       : %f s\n     timestep     : %f s'%(self.n_step, self.end_time, self.dt))
-        print(' System parameters\n     dynamic type : ' + self.dyn + '\n     noise type   : ' + self.noise + '\n     noise input  : ' + str(self.noise_inpt))
+        print(' System parameters\n     nbr : ' + str(self.nbr) + '\n     m   : ' + str(self.m) + '\n     sigma   : ' + str(self.sigma) + '\n     J   : ' + str(self.J))
         print(' Current state\n     current step : %d\n     current time : %f s\n     state        : '%(self.step, self.time) + st)
         print("-------------------------------------------------------------\n\n")
         return
@@ -171,15 +179,10 @@ Inputs :
 Before System.doStep() : System.time is the index of input variables (state(t). J(t)...)
 After System.doStep() : System.time is the index of output variables (state(d+dt)).
 No input, no output."""
-        # setting the matrix
-        if self.noise != 'no noise' :
-            self.eta = util.genNoise(nbr=self.nbr, rule=self.noise, inpt=self.noise_inpt)
-            self.etas[:,:,self.step] = self.eta # storage
-            J = self.J_0 + self.eta
-        else :
-            J = self.J_0
+        # gen noise
+        dmu = np.random.normal(scale=np.sqrt(self.dt), size=self.nbr) # ! the Wiener process has a standard deviation ('scale') of sqrt(dt) between t and t+dt !
         # master equation
-        self.state += self.dt*np.dot(J, self.state) # driving equation : state(t+dt) = state(t) + dt*J(t)*state(t)
+        self.state += self.dt*np.dot(self.mat, self.state) + np.sqrt(2)*self.sigma*np.multiply(self.state, dmu) # driving equation : state(t+dt) = state(t) + dt.mat*W + sqrt(2)*sigma.(diag(W)*dmu)
         # increment
         self.time += self.dt
         self.step += 1
