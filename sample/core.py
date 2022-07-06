@@ -225,18 +225,17 @@ No input, no output."""
 class largeBM(System) :
     """sample.core.largeBM(self, n_step=100, dt=0.1, end_time=-1., nbr=5, noise='lBM', noise_inpt=(1.,10.))
 
-Defines the uncorrelated version of the BM mode (see eq. 5 in BM2000).
+Defines the uncorrelated version of the BM mode (see eq. 5 in BM2000). Uses the Ito-stochastic differential equation framework.
 
 Input :
     int n_step     : number of step that will be simulated
     float dt       : time resolution
     float end_time : duration of the simulation (optionnal, has priority over the specified 'n_step')
     int nbr        : number of coordinates for a state
-    str noise      : type of noise, '' if no noise
-    float dyn_inpt : parameter for the markovian matrix
-    tuple noise_inpt : parameters for the noise generating function"""
+    float m        : 'm' paramater in Bouchaud, Mézard (2000)
+    float sigma    : 'sigma' paramater in Bouchaud, Mézard (2000)"""
 
-    def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, dyn_inpt=1., noise='lBM', noise_inpt=(1.,10.)) :
+    def __init__(self, n_step=100, dt=0.1, end_time=-1., nbr=5, m=0.1, sigma=2., J=1.) :
         System.__init__(self, n_step=n_step, end_time=end_time)
         # simulation parameters
         self.dt = dt
@@ -247,16 +246,13 @@ Input :
             self.end_time = (self.n_step)*self.dt
         # state initialization
         self.nbr = nbr
+        self.m = m
+        self.sigma = sigma
+        self.J = J
         self.state = np.zeros(self.nbr, dtype='float')
         self.state += 1.
         self.states = []
         self.states.append(copy.copy(self.state))
-        # dynamics
-        self.J = dyn_inpt
-        self.noise = noise
-        self.noise_inpt = noise_inpt
-        self.eta = np.zeros(self.nbr)
-        self.etas = np.zeros((self.nbr, self.n_step)) # storage
         return
 
 
@@ -269,7 +265,7 @@ Input :
         print("\n Object 'System' n°" + str(id(self)))
         print("-------------------------------------------------------------")
         print(' Simulation parameters\n     samples      : %d\n     length       : %f s\n     timestep     : %f s'%(self.n_step, self.end_time, self.dt))
-        print(' System parameters\n     noise type   : ' + self.noise + '\n     noise input  : ' + str(self.noise_inpt))
+        print(' System parameters\n     nbr : ' + str(self.nbr) + '\n     m   : ' + str(self.m) + '\n     sigma   : ' + str(self.sigma) + '\n     J   : ' + str(self.J))
         print(' Current state\n     current step : %d\n     current time : %f s\n     state        : '%(self.step, self.time) + st)
         print("-------------------------------------------------------------\n\n")
         return
@@ -280,11 +276,10 @@ Input :
 Before System.doStep() : System.time is the index of input variables (state(t), J(t)...).
 After System.doStep()  : System.time is the index of output variables (state(d+dt)).
 No input, no output."""
-        # setting the noise vector
-        self.eta = util.genNoise(nbr=self.nbr, rule=self.noise, inpt=self.noise_inpt, retmat=False)
-        self.etas[:,self.step] = self.eta # storage
+        # gen noise
+        dmu = np.random.normal(scale=np.sqrt(self.dt), size=self.nbr) # ! the Wiener process has a standard deviation ('scale') of sqrt(dt) between t and t+dt !
         # master equation
-        self.state += self.dt*(np.multiply(self.state, self.eta) + self.J*(1-self.state)) # driving equation : state[i](t+dt) = state[i](t) + dt*(state[i](t)*noise + J(1-state[i](t))) with noise = eta[i](t) - m -sigm**2
+        self.state += self.dt*self.J*(1.-self.state) + np.sqrt(2)*self.sigma*np.multiply(self.state, dmu) # driving equation : state(t+dt) = state(t) + dt.mat*W + sqrt(2)*sigma.(diag(W)*dmu)
         # increment
         self.time += self.dt
         self.step += 1
