@@ -319,10 +319,11 @@ No input, no output."""
 
 class SSR(System) :
 
-    def __init__(self, nbr=10, rate=1., n_step=100) :
+    def __init__(self, nbr=10, rate=1., n_step=100, kind='cst') :
         System.__init__(self)
         self.nbr = nbr
         self.rate = rate
+        self.kind = kind
         return
 
     def info(self) :
@@ -336,11 +337,21 @@ After System.doStep() : System.time is the index of output variables (state(d+dt
 No input, no output."""
         # update state
         if self.state == 0 :
+            # state
             self.state = self.nbr - 1
-            dt = np.random.exponential(scale=self.rate*1)
+            # dt
+            if self.kind=='exp' :
+                dt = np.random.exponential(scale=self.rate*1)
+            else : # 'cst'
+                dt = self.rate**-1
         else :
-            dt = np.random.exponential(scale=self.rate/self.state)
+            # state
             self.state = np.random.randint(0, self.state)
+            # dt
+            if self.kind=='exp' :
+                dt = np.random.exponential(scale=self.rate)
+            else : # 'cst'
+                dt = self.rate**-1
         # increment
         self.time += dt
         self.step += 1
@@ -548,11 +559,11 @@ def test06() :
     syst = SSR(nbr=30, n_step=1000)
     syst.run()
     syst.info()
-    syst = SSR(nbr=300, n_step=100)
+    syst = SSR(nbr=300, n_step=100, kind='exp')
     syst.run()
     ts = syst.getTimes()
     st = syst.getStates()
-    plt.plot(ts, st)
+    plt.step(ts, st)
     plt.show()
     print('TEST 06 OK\n---------------------------------\n\n\n')
     return
