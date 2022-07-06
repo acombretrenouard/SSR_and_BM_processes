@@ -319,11 +319,14 @@ No input, no output."""
 
 class SSR(System) :
 
-    def __init__(self, nbr=10, rate=1., n_step=100, kind='cst') :
+    def __init__(self, nbr=10, rate=1., n_step=100, jumps='cst', drive='top', lmda = 0.1) :
         System.__init__(self)
         self.nbr = nbr
         self.rate = rate
-        self.kind = kind
+        self.jumps = jumps
+        self.drive = drive
+        self.lmda = lmda
+        self.n_step = n_step
         return
 
     def info(self) :
@@ -336,22 +339,25 @@ Before System.doStep() : System.time is the index of input variables (state(t). 
 After System.doStep() : System.time is the index of output variables (state(d+dt)).
 No input, no output."""
         # update state
-        if self.state == 0 :
-            # state
-            self.state = self.nbr - 1
-            # dt
-            if self.kind=='exp' :
-                dt = np.random.exponential(scale=self.rate*1)
-            else : # 'cst'
-                dt = self.rate**-1
-        else :
-            # state
+        do_drive = np.random.uniform() < self.lmda #... drive==True with probability lmda
+        if do_drive :
+            if self.drive == 'unif' :
+                self.state = np.random.randint(0, self.nbr)
+            elif self.drive == 'top' :
+                self.state = self.nbr-1
+            else : # drive == 'gnd'
+                pass
+        elif self.state > 0 :
             self.state = np.random.randint(0, self.state)
-            # dt
-            if self.kind=='exp' :
-                dt = np.random.exponential(scale=self.rate)
-            else : # 'cst'
-                dt = self.rate**-1
+        elif self.drive == 'gnd' :
+            self.state = self.nbr-1
+        else :
+            pass
+        # calc dt
+        if self.jumps == 'exp' :
+            dt = np.random.exponential(scale=self.rate)
+        else : # jumps == 'cst'
+            dt = self.rate**-1
         # increment
         self.time += dt
         self.step += 1
@@ -559,13 +565,42 @@ def test06() :
     syst = SSR(nbr=30, n_step=1000)
     syst.run()
     syst.info()
-    syst = SSR(nbr=300, n_step=100, kind='exp')
+    syst = SSR(nbr=300, n_step=100, jumps='cst', drive='unif')
     syst.run()
     ts = syst.getTimes()
     st = syst.getStates()
     plt.step(ts, st)
     plt.show()
     print('TEST 06 OK\n---------------------------------\n\n\n')
+    return
+
+
+def test07() :
+    """test 7 : testing SSR histograms"""
+    # cst-unif
+    syst = SSR(nbr=300, n_step=100000, jumps='cst', drive='unif')
+    syst.run()
+    ts = syst.getTimes()
+    st = syst.getStates()
+    plt.figure('cst-unif')
+    util.plotHistogram(ts,st, log=True)
+    # exp-unif
+    syst = SSR(nbr=300, n_step=100000, jumps='exp', drive='unif')
+    syst.run()
+    ts = syst.getTimes()
+    st = syst.getStates()
+    plt.figure('exp-unif')
+    util.plotHistogram(ts,st, log=True)
+    # cst-top
+    syst = SSR(nbr=300, n_step=100000, jumps='cst', drive='top')
+    syst.run()
+    ts = syst.getTimes()
+    st = syst.getStates()
+    plt.figure('cst-top')
+    util.plotHistogram(ts,st, log=True)
+    # show
+    #plt.show()
+    print('TEST 07OK\n---------------------------------\n\n\n')
     return
 
 # test NNNNN: ...
