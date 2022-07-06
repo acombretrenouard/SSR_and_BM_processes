@@ -337,7 +337,13 @@ class SSR(System) :
 
 Before System.doStep() : System.time is the index of input variables (state(t). J(t)...)
 After System.doStep() : System.time is the index of output variables (state(d+dt)).
-No input, no output."""
+No input, no output.
+
+
+TO DO :
+    - write a function choice(state) that returns TRUE if the driving should happen,
+    - write a function drive(state, n_states) that picks the next state,
+    - ..."""
         # update state
         do_drive = np.random.uniform() < self.lmda #... drive==True with probability lmda
         if do_drive :
