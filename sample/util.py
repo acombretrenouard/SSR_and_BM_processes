@@ -291,3 +291,27 @@ Rule for 'style' :
 
 ## Dev
 """edit here the code that should be added to this file"""
+
+
+
+def plotHistogram(ts, st, log=False, add1=True) :
+    """plot the histogram of occupancy in each state
+log=True for log-scale
+
+Input :
+        ndarray ts : 1D list of timestamps (float)
+        ndarray sts : 1D list of discrete states (int)    Rq : system jumps to state sts[i] at time ts[i]"""
+    ts, st = np.array(ts), np.array(st)[:-1]
+    if add1 : st+= 1
+    deltas = ts[1:]-ts[:-1]
+    if log :
+        plt.xscale('log')
+        plt.yscale('log')
+        barg = np.logspace(np.log10(np.amin(st)), np.log10(np.amax(st)), num=100)
+    else :
+        barg = 100
+    plt.hist(st, weights=deltas, density=True, log=log, bins=barg)
+    plt.xlabel('state')
+    plt.ylabel('relative time spent')
+    plt.show()
+    return
