@@ -346,6 +346,7 @@ TO DO :
     - ..."""
         # update state
         do_drive = np.random.uniform() < self.lmda #... drive==True with probability lmda
+        old_state = self.state
         if do_drive :
             if self.drive == 'unif' :
                 self.state = np.random.randint(0, self.nbr)
@@ -362,6 +363,8 @@ TO DO :
         # calc dt
         if self.jumps == 'exp' :
             dt = np.random.exponential(scale=self.rate)
+        elif self.jumps =='varying_exp' :
+            dt = np.random.exponential(scale=self.rate/(old_state+1))
         else : # jumps == 'cst'
             dt = self.rate**-1
         # increment
@@ -596,6 +599,13 @@ def test07() :
     ts = syst.getTimes()
     st = syst.getStates()
     plt.figure('exp-unif')
+    util.plotHistogram(ts,st, log=True)
+    # varying_exp-unif
+    syst = SSR(nbr=300, n_step=100000, jumps='varying_exp', drive='unif')
+    syst.run()
+    ts = syst.getTimes()
+    st = syst.getStates()
+    plt.figure('varying_exp-unif')
     util.plotHistogram(ts,st, log=True)
     # cst-top
     syst = SSR(nbr=300, n_step=100000, jumps='cst', drive='top')

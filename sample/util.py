@@ -9,6 +9,7 @@ from scipy.stats.mstats import gmean
 import matplotlib.cm # matplotlib colormaps
 from mpl_toolkits.axes_grid1 import make_axes_locatable # for plt.colorbar axes positionning
 import matplotlib.colors as colors
+import math
 
 
 ## BM utilities
@@ -315,3 +316,42 @@ Input :
     plt.ylabel('relative time spent')
     plt.show()
     return
+
+
+
+
+
+def treshold(Y) :
+    """provides a treshold (lower bound) for estimating the tail exponent in BM simulations"""
+    mn = np.mean(Y)
+    max = np.amax(Y)
+    # opt 1 (large value)
+    return np.sqrt(max*mn)
+    # opt 2 (> moyenne)
+    #return mn
+
+def estimate_exp(Y, tsld) :
+    """estimate the tail-exponent for a stationnary process distributed broadly
+ignores values under 'tsld' (treshold)"""
+    rho = 1/(np.amax(Y) - tsld)
+    counter = 0
+    sum = 0
+    for y in Y :
+        if y >= tsld :
+            counter += 1
+            sum += np.log(y/tsld)
+    lmda = 1 + counter/sum
+    var = (lmda-1)**2/counter
+    rho *= counter
+    return lmda, var, rho
+
+def ref_pow(lmda, tsld, rho) :
+    func = lambda y : rho*(y/tsld)**-lmda
+    return func
+
+
+def ref_distr(mu) :
+    Z = (mu-1)/math.gamma(mu)
+    func = lambda w : Z*np.exp(-(mu-1)/w)/(w**(1+mu))
+    return func
+
