@@ -173,16 +173,18 @@ Inputs :
         print("-------------------------------------------------------------\n\n")
         return
 
-    def doStep(self) :
+    def doStep(self, rescale) :
         """Forwards the state by dt.
 
 Before System.doStep() : System.time is the index of input variables (state(t). J(t)...)
 After System.doStep() : System.time is the index of output variables (state(d+dt)).
 No input, no output."""
-        # gen noise
-        dmu = np.random.normal(scale=np.sqrt(self.dt), size=self.nbr) # ! the Wiener process has a standard deviation ('scale') of sqrt(dt) between t and t+dt !
-        # master equation
-        self.state += self.dt*np.dot(self.mat, self.state) + np.sqrt(2)*self.sigma*np.multiply(self.state, dmu) # driving equation : state(t+dt) = state(t) + dt.mat*W + sqrt(2)*sigma.(diag(W)*dmu)
+        # gen noise (! the Wiener process has a standard deviation ('scale') of sqrt(dt) between t and t+dt !)
+        dmu = np.random.normal(scale=np.sqrt(self.dt), size=self.nbr)
+        # master equation : state(t+dt) = state(t) + dt.mat*W + sqrt(2)*sigma.(diag(W)*dmu)
+        self.state += self.dt*np.dot(self.mat, self.state) + np.sqrt(2)*self.sigma*np.multiply(self.state, dmu)
+        if rescale :
+            self.state = self.state/np.average(self.state)
         # increment
         self.time += self.dt
         self.step += 1
@@ -191,7 +193,7 @@ No input, no output."""
         self.times.append(self.getTime())
         return
 
-    def run(self) :
+    def run(self, rescale=False) :
         """Calculates all states from n°1 to n°T-1 (n°0 is set by default).
 
 Calls a thread loop that shows progress if long simulation.
@@ -205,7 +207,7 @@ No input, no output."""
         self.running = True
         #self.step = 1 # !! self.step représente le temps présent à l'entrée dans System.doStep() !!
         while self.step < self.n_step :
-            self.doStep()
+            self.doStep(rescale)
         self.running = False
         timer.cancel()
         delta = time.time() - start
@@ -319,13 +321,13 @@ No input, no output."""
 
 class SSR(System) :
 
-    def __init__(self, nbr=10, rate=1., n_step=100, dt_type='cst', drive='top', lmda=0.1) :
+    def __init__(self, nbr=10, rate=1., n_step=100, dt_type='cst', drive_type='top', choice_func=util.Choice.cst) :
         System.__init__(self)
         self.nbr = nbr
         self.rate = rate
         self.dt_type = dt_type
-        self.drive = drive
-        self.lmda = lmda
+        self.drive_type = drive_type
+        self.choice_func = choice_func
         self.n_step = n_step
         return
 
@@ -344,28 +346,34 @@ TO DO :
     - write a function choice(state) that returns TRUE if the driving should happen,
     - write a function drive(state, n_states) that picks the next state,
     - ..."""
-        # update state
-        do_drive = np.random.uniform() < self.lmda #... drive==True with probability lmda
         old_state = self.state
-        if do_drive :
-            if self.drive == 'unif' :
+        # choice
+        drive = self.choice_func(self.state, self.nbr)
+        # driving
+        if drive :
+            if self.drive_type == 'unif' :
                 self.state = np.random.randint(0, self.nbr)
-            elif self.drive == 'top' :
+            elif self.drive_type == 'top' :
                 self.state = self.nbr-1
-            else : # drive == 'gnd'
+            elif self.drive_type == 'gnd' and self.state == 0 :
+                self.state = self.nbr-1
+            else :
+                # no driving
                 pass
-        elif self.state > 0 :
-            self.state = np.random.randint(0, self.state)
-        elif self.drive == 'gnd' :
-            self.state = self.nbr-1
+        # dissipation
         else :
-            pass
-        # calc dt
+            if self.state > 0 :
+                self.state = np.random.randint(0, self.state) #.. in [[0, self.state[[
+            else :
+                # we already have self.state == 0
+                pass
+        # waiting time
         if self.dt_type == 'exp' :
             dt = np.random.exponential(scale=self.rate)
         elif self.dt_type =='varying_exp' :
             dt = np.random.exponential(scale=self.rate/(old_state+1))
-        else : # dt_type == 'cst'
+        else :
+            # constant timestep
             dt = self.rate**-1
         # increment
         self.time += dt
@@ -574,7 +582,7 @@ def test06() :
     syst = SSR(nbr=30, n_step=1000)
     syst.run()
     syst.info()
-    syst = SSR(nbr=300, n_step=100, dt_type='cst', drive='unif')
+    syst = SSR(nbr=300, n_step=100, dt_type='cst', drive_type='unif')
     syst.run()
     ts = syst.getTimes()
     st = syst.getStates()
@@ -587,28 +595,28 @@ def test06() :
 def test07() :
     """test 7 : testing SSR histograms"""
     # cst-unif
-    syst = SSR(nbr=300, n_step=1000, dt_type='cst', drive='unif')
+    syst = SSR(nbr=300, n_step=1000, dt_type='cst', drive_type='unif')
     syst.run()
     ts = syst.getTimes()
     st = syst.getStates()
     plt.figure('cst-unif')
     util.plotHistogram(ts,st, log=True)
     # exp-unif
-    syst = SSR(nbr=300, n_step=1000, dt_type='exp', drive='unif')
+    syst = SSR(nbr=300, n_step=1000, dt_type='exp', drive_type='unif')
     syst.run()
     ts = syst.getTimes()
     st = syst.getStates()
     plt.figure('exp-unif')
     util.plotHistogram(ts,st, log=True)
     # varying_exp-unif
-    syst = SSR(nbr=300, n_step=1000, dt_type='varying_exp', drive='unif')
+    syst = SSR(nbr=300, n_step=1000, dt_type='varying_exp', drive_type='unif')
     syst.run()
     ts = syst.getTimes()
     st = syst.getStates()
     plt.figure('varying_exp-unif')
     util.plotHistogram(ts,st, log=True)
     # cst-top
-    syst = SSR(nbr=300, n_step=1000, dt_type='cst', drive='top')
+    syst = SSR(nbr=300, n_step=1000, dt_type='cst', drive_type='top')
     syst.run()
     ts = syst.getTimes()
     st = syst.getStates()
@@ -619,14 +627,47 @@ def test07() :
     print('TEST 07OK\n---------------------------------\n\n\n')
     return
 
+# test 8: ...
+def test08() :
+    # lambda = 0.9
+    lmda = 0.9
+    syst = SSR(nbr=300, n_step=10000, dt_type='cst', drive_type='unif', choice_func=util.Choice.buildCst(lmda))
+    syst.run()
+    ts1 = syst.getTimes()
+    st1 = syst.getStates()
+    # lambda = 0.5
+    lmda = 0.5
+    syst = SSR(nbr=300, n_step=10000, dt_type='cst', drive_type='unif', choice_func=util.Choice.buildCst(lmda))
+    syst.run()
+    ts2 = syst.getTimes()
+    st2 = syst.getStates()
+    # time serie
+    plt.figure('time series')
+    plt.step(ts1[:100], st1[:100], label = '$\lambda = 0.9$')
+    plt.step(ts2[:100], st2[:100], label = '$\lambda = 0.5$')
+    plt.xlabel('step n°')
+    plt.ylabel('state n°')
+    plt.legend()
+    # histogram
+    plt.figure('lambda = 0.9')
+    plt.grid()
+    util.plotHistogram(ts1,st1, log=True)
+    plt.figure('lambda = 0.5')
+    plt.grid()
+    util.plotHistogram(ts2,st2, log=True)
+    # show
+    plt.show()
+    print('TEST 08 OK\n---------------------------------\n\n\n')
+    return
+
+
+
+
 # test NNNNN: ...
 def test0NNNNN() :
     #...
     print('TEST 0NNNNN OK\n---------------------------------\n\n\n')
     return
-
-
-
 
 
 

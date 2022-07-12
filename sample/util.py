@@ -303,22 +303,36 @@ Input :
         ndarray ts : 1D list of timestamps (float)
         ndarray sts : 1D list of discrete states (int)    Rq : system jumps to state sts[i] at time ts[i]"""
     ts, st = np.array(ts), np.array(st)[:-1]
+    N = np.shape(st)[0]
     if add1 : st+= 1
     deltas = ts[1:]-ts[:-1]
     if log :
         plt.xscale('log')
         plt.yscale('log')
-        barg = np.logspace(np.log10(np.amin(st)), np.log10(np.amax(st)), num=100)
+        barg = np.logspace(np.log10(np.amin(st)), np.log10(np.amax(st)), num=int(np.sqrt(N)))
     else :
-        barg = 100
+        barg = int(np.sqrt(N))
     plt.hist(st, weights=deltas, density=True, log=log, bins=barg)
     plt.xlabel('state')
     plt.ylabel('relative time spent')
-    plt.show()
     return
 
 
 
+
+def build_ER(nbr, p) :
+    """build_ER(nbr, p)
+
+returns an Erdos-Renyi network of size 'nbr' and of parameter 'p'
+
+Return : symetric matrix of size nbr*nbr where a node is 1 with probability p (and 0 else)"""
+    mat = np.zeros((nbr, nbr))
+    for i in range(nbr) :
+        for j in range(i+1, nbr) :
+            choice = np.random.uniform() < p
+            mat[i,j] = int(choice)
+            mat[j,i] = int(choice)
+    return mat
 
 
 def treshold(Y) :
@@ -355,3 +369,44 @@ def ref_distr(mu) :
     func = lambda w : Z*np.exp(-(mu-1)/w)/(w**(1+mu))
     return func
 
+
+class Choice(object) :
+    """collection of functions lambda(state) that will serve as choice functions for driving in sample.SSR.doStep()"""
+
+    def cst(state, ref) :
+        """returns True with propability 1-lmda regardless of the state"""
+        lmda = 0.9
+        return np.random.uniform() < 1-lmda
+
+    def buildCst(lmda) :
+        """returns a function Choice.cst of parameter lmda"""
+        func = lambda state, ref : np.random.uniform() < 1-lmda
+        return func
+
+    def upLin(state, ref) :
+        """returns True with a linear probability"""
+        lmda = 0.5*state/ref
+        return np.random.uniform() < 1-lmda
+
+    def downLin(state, ref) :
+        """returns True with a linear probability"""
+        lmda = 0.1*(1-state/ref)
+        return np.random.uniform() < 1-lmda
+
+    def gammaFit(state, ref) :
+        """returns True with propability b*(state/ref) - a + 1
+a = 0.5
+b = 0.5"""
+        a = 0.9
+        b = 0.1
+        lmda = b*(state/ref) - a + 1
+        return np.random.uniform() > lmda
+
+    def invGammaFit(state, ref) :
+        """returns True with propability b*(state/ref)**-1 - a + 1
+a = 0.5
+b = 0.5"""
+        a = 0.9
+        b = 0.1
+        lmda = b*(ref/state) - a + 1
+        return np.random.uniform() > lmda
