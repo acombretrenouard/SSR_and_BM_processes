@@ -319,11 +319,11 @@ No input, no output."""
 
 class SSR(System) :
 
-    def __init__(self, nbr=10, rate=1., n_step=100, jumps='cst', drive='top', lmda = 0.1) :
+    def __init__(self, nbr=10, rate=1., n_step=100, dt_type='cst', drive='top', lmda=0.1) :
         System.__init__(self)
         self.nbr = nbr
         self.rate = rate
-        self.jumps = jumps
+        self.dt_type = dt_type
         self.drive = drive
         self.lmda = lmda
         self.n_step = n_step
@@ -361,11 +361,11 @@ TO DO :
         else :
             pass
         # calc dt
-        if self.jumps == 'exp' :
+        if self.dt_type == 'exp' :
             dt = np.random.exponential(scale=self.rate)
-        elif self.jumps =='varying_exp' :
+        elif self.dt_type =='varying_exp' :
             dt = np.random.exponential(scale=self.rate/(old_state+1))
-        else : # jumps == 'cst'
+        else : # dt_type == 'cst'
             dt = self.rate**-1
         # increment
         self.time += dt
@@ -574,7 +574,7 @@ def test06() :
     syst = SSR(nbr=30, n_step=1000)
     syst.run()
     syst.info()
-    syst = SSR(nbr=300, n_step=100, jumps='cst', drive='unif')
+    syst = SSR(nbr=300, n_step=100, dt_type='cst', drive='unif')
     syst.run()
     ts = syst.getTimes()
     st = syst.getStates()
@@ -587,28 +587,28 @@ def test06() :
 def test07() :
     """test 7 : testing SSR histograms"""
     # cst-unif
-    syst = SSR(nbr=300, n_step=100000, jumps='cst', drive='unif')
+    syst = SSR(nbr=300, n_step=1000, dt_type='cst', drive='unif')
     syst.run()
     ts = syst.getTimes()
     st = syst.getStates()
     plt.figure('cst-unif')
     util.plotHistogram(ts,st, log=True)
     # exp-unif
-    syst = SSR(nbr=300, n_step=100000, jumps='exp', drive='unif')
+    syst = SSR(nbr=300, n_step=1000, dt_type='exp', drive='unif')
     syst.run()
     ts = syst.getTimes()
     st = syst.getStates()
     plt.figure('exp-unif')
     util.plotHistogram(ts,st, log=True)
     # varying_exp-unif
-    syst = SSR(nbr=300, n_step=100000, jumps='varying_exp', drive='unif')
+    syst = SSR(nbr=300, n_step=1000, dt_type='varying_exp', drive='unif')
     syst.run()
     ts = syst.getTimes()
     st = syst.getStates()
     plt.figure('varying_exp-unif')
     util.plotHistogram(ts,st, log=True)
     # cst-top
-    syst = SSR(nbr=300, n_step=100000, jumps='cst', drive='top')
+    syst = SSR(nbr=300, n_step=1000, dt_type='cst', drive='top')
     syst.run()
     ts = syst.getTimes()
     st = syst.getStates()
