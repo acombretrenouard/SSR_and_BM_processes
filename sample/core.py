@@ -321,12 +321,13 @@ No input, no output."""
 
 class SSR(System) :
 
-    def __init__(self, nbr=10, rate=1., n_step=100, dt_type='cst', drive_type='top', choice_func=util.Choice.cst) :
+    def __init__(self, nbr=10, rate=1., n_step=100, dt_type='cst', drive_type='top', dissipate_type='unif', choice_func=util.Choice.cst) :
         System.__init__(self)
         self.nbr = nbr
         self.rate = rate
         self.dt_type = dt_type
         self.drive_type = drive_type
+        self.dissipate_type = dissipate_type
         self.choice_func = choice_func
         self.n_step = n_step
         return
@@ -357,21 +358,34 @@ TO DO :
                 self.state = self.nbr-1
             elif self.drive_type == 'gnd' and self.state == 0 :
                 self.state = self.nbr-1
+            elif False :
+                # another option ?
+                pass
             else :
                 # no driving
                 pass
         # dissipation
         else :
-            if self.state > 0 :
-                self.state = np.random.randint(0, self.state) #.. in [[0, self.state[[
-            else :
-                # we already have self.state == 0
+            if self.dissipate_type=='decay' :
+                self.state += -(self.rate**-1)*0.25*self.state # here decay_rate = 0.25
+            elif False :
+                # another option ?
                 pass
+            else :
+                # self.dissipate == 'unif'
+                if self.state > 0 :
+                    self.state = np.random.randint(0, self.state) #.. in [[0, self.state[[
+                else :
+                    # self.state == 0
+                    pass
         # waiting time
         if self.dt_type == 'exp' :
-            dt = np.random.exponential(scale=self.rate)
+            dt = np.random.exponential(scale=self.rate**-1)
         elif self.dt_type =='varying_exp' :
             dt = np.random.exponential(scale=self.rate/(old_state+1))
+        elif False :
+            # another option ?
+            pass
         else :
             # constant timestep
             dt = self.rate**-1

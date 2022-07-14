@@ -378,6 +378,11 @@ class Choice(object) :
         lmda = 0.9
         return np.random.uniform() < 1-lmda
 
+    def cst400(state, ref) :
+        """returns True with propability 1-lmda regardless of the state"""
+        lmda = 1-1/400
+        return np.random.uniform() < 1-lmda
+
     def buildCst(lmda) :
         """returns a function Choice.cst of parameter lmda"""
         func = lambda state, ref : np.random.uniform() < 1-lmda
@@ -410,3 +415,9 @@ b = 0.5"""
         b = 0.1
         lmda = b*(ref/state) - a + 1
         return np.random.uniform() > lmda
+
+    def bottom(state, ref) :
+        if state==0 :
+            return True
+        else :
+            return False
