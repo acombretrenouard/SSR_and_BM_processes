@@ -309,9 +309,9 @@ Input :
     if log :
         plt.xscale('log')
         plt.yscale('log')
-        barg = np.logspace(np.log10(np.amin(st)), np.log10(np.amax(st)), num=int(np.sqrt(N)))
+        barg = np.logspace(np.log10(np.amin(st)), np.log10(np.amax(st)), num=50)
     else :
-        barg = int(np.sqrt(N))
+        barg = 50
     plt.hist(st, weights=deltas, density=True, log=log, bins=barg)
     plt.xlabel('state')
     plt.ylabel('relative time spent')
@@ -378,9 +378,14 @@ class Choice(object) :
         lmda = 0.9
         return np.random.uniform() < 1-lmda
 
-    def cst400(state, ref) :
+    def cst4(state, ref) :
         """returns True with propability 1-lmda regardless of the state"""
-        lmda = 1-1/400
+        lmda = 1-1/4
+        return np.random.uniform() < 1-lmda
+
+    def cst4XX(state, ref) :
+        """returns True with propability 1-lmda regardless of the state"""
+        lmda = 1-3/4000
         return np.random.uniform() < 1-lmda
 
     def buildCst(lmda) :
@@ -396,6 +401,18 @@ class Choice(object) :
     def downLin(state, ref) :
         """returns True with a linear probability"""
         lmda = 0.1*(1-state/ref)
+        return np.random.uniform() < 1-lmda
+
+    def gaussianFit(state, ref) :
+        """returns True with propability b*(state/ref)**2"""
+        b = 1
+        lmda = b*(state/ref)**2
+        return np.random.uniform() < 1-lmda
+
+    def expFit(state, ref) :
+        """returns True with propability b*(state/ref)**2"""
+        b = 1
+        lmda = b*state/ref
         return np.random.uniform() < 1-lmda
 
     def gammaFit(state, ref) :

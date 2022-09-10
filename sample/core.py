@@ -358,6 +358,8 @@ TO DO :
                 self.state = self.nbr-1
             elif self.drive_type == 'gnd' and self.state == 0 :
                 self.state = self.nbr-1
+            elif self.drive_type == 'cont' :
+                self.state = np.random.uniform(0, self.nbr-1)
             elif False :
                 # another option ?
                 pass
@@ -368,6 +370,8 @@ TO DO :
         else :
             if self.dissipate_type=='decay' :
                 self.state += -(self.rate**-1)*0.25*self.state # here decay_rate = 0.25
+            elif self.dissipate_type=='cont' :
+                self.state = np.random.uniform(0, self.state)
             elif False :
                 # another option ?
                 pass
@@ -376,6 +380,8 @@ TO DO :
                 if self.state > 0 :
                     self.state = np.random.randint(0, self.state) #.. in [[0, self.state[[
                 else :
+                    if self.drive_type == 'unif' :
+                        self.state = np.random.randint(0, self.nbr)
                     # self.state == 0
                     pass
         # waiting time
